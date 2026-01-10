@@ -50,6 +50,12 @@ backup_roles() {
 
   echo "Backing up database roles..."
   
+  # Use PostgreSQL 17 pg_dumpall if available, otherwise fall back to system default
+  local PG_DUMPALL="pg_dumpall"
+  if [ -f "/usr/lib/postgresql/17/bin/pg_dumpall" ]; then
+    PG_DUMPALL="/usr/lib/postgresql/17/bin/pg_dumpall"
+  fi
+  
   # Export connection parameters as environment variables
   export PGHOST="$PGHOST"
   export PGPORT="$PGPORT"
@@ -63,7 +69,7 @@ backup_roles() {
   fi
 
   # Use pg_dumpall with connection via environment variables
-  if ! pg_dumpall \
+  if ! $PG_DUMPALL \
     --roles-only \
     --no-password \
     > "$OUTPUT_FILE" 2>&1; then
