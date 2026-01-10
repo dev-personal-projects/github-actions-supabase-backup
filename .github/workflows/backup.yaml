@@ -3,14 +3,13 @@ name: supabase-backup
 on:
   push:
     branches: [main, dev]
-  pull_request:
-    branches: [main, dev]
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *" # Runs every day at midnight
+    - cron: "0 0 * * *" # Runs every day at midnight (configure in ONE repo only)
 
 env:
   BACKUP_ENABLED: true
+  BACKUP_DIR: backups
 
 jobs:
   run_db_backup:
@@ -38,24 +37,62 @@ jobs:
         with:
           version: latest
 
-      - name: Create timestamp folder
+      - name: Setup PostgreSQL client
         if: env.BACKUP_ENABLED == 'true'
-        run: mkdir -p prisma/backups
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Create directory structure
+        if: env.BACKUP_ENABLED == 'true'
+        run: |
+          chmod +x .github/scripts/*.sh
+          .github/scripts/create-directories.sh "$BACKUP_DIR"
+
+      - name: Detect schemas
+        if: env.BACKUP_ENABLED == 'true'
+        id: detect-schemas
+        run: |
+          SCHEMAS=$(.github/scripts/detect-schemas.sh "$SUPABASE_DB_URL")
+          echo "schemas<<EOF" >> $GITHUB_OUTPUT
+          echo "$SCHEMAS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "Detected schemas:"
+          echo "$SCHEMAS" | while read schema; do
+            echo "  - $schema"
+          done
 
       - name: Backup roles
         if: env.BACKUP_ENABLED == 'true'
-        run: supabase db dump --db-url "$SUPABASE_DB_URL" -f prisma/backups/roles.sql --role-only
+        run: |
+          .github/scripts/backup-roles.sh "$SUPABASE_DB_URL" "$BACKUP_DIR/latest/roles.sql"
 
-      - name: Backup schema
+      - name: Backup schemas and tables
         if: env.BACKUP_ENABLED == 'true'
-        run: supabase db dump --db-url "$SUPABASE_DB_URL" -f prisma/backups/schema.sql
+        run: |
+          SCHEMAS="${{ steps.detect-schemas.outputs.schemas }}"
+          if [ -z "$SCHEMAS" ]; then
+            echo "No schemas detected. Exiting."
+            exit 0
+          fi
 
-      - name: Backup data
-        if: env.BACKUP_ENABLED == 'true'
-        run: supabase db dump --db-url "$SUPABASE_DB_URL" -f prisma/backups/data.sql --data-only --use-copy
+          # Process each schema
+          while IFS= read -r schema; do
+            if [ -n "$schema" ]; then
+              echo "Processing schema: $schema"
+              .github/scripts/backup-schema.sh \
+                "$SUPABASE_DB_URL" \
+                "$schema" \
+                "$BACKUP_DIR/latest" \
+                "$(pwd)/.github/scripts" || {
+                echo "Warning: Failed to backup schema $schema, continuing..." >&2
+              }
+            fi
+          done <<< "$SCHEMAS"
 
       - name: Commit backups
         if: env.BACKUP_ENABLED == 'true'
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: Supabase backup
+          commit_message: "Backup: Supabase database backup - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+          file_pattern: "backups/**"
