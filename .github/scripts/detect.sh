@@ -36,11 +36,13 @@ detect_schemas() {
   fi
   
   local ERROR_FILE=$(mktemp)
+  # Test connection - capture error but also show it immediately
   if ! $PSQL "$DB_URL" -c "SELECT 1;" >/dev/null 2> "$ERROR_FILE"; then
     echo "Error: Failed to connect to database" >&2
     echo "Using psql: $PSQL" >&2
+    echo "Database URL (masked): $(echo "$DB_URL" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g')" >&2
     if [ -s "$ERROR_FILE" ]; then
-      echo "psql error:" >&2
+      echo "psql error output:" >&2
       cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
     else
       echo "No error details available (empty error file)" >&2
@@ -67,8 +69,12 @@ detect_schemas() {
     ORDER BY schema_name;
   " > "$QUERY_OUTPUT" 2> "$QUERY_ERROR"; then
     echo "Error: Failed to query schemas" >&2
+    echo "Using psql: $PSQL" >&2
     if [ -s "$QUERY_ERROR" ]; then
+      echo "psql error output:" >&2
       cat "$QUERY_ERROR" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    else
+      echo "No error details available (empty error file)" >&2
     fi
     rm -f "$QUERY_OUTPUT" "$QUERY_ERROR"
     exit 1

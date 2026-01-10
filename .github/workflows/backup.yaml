@@ -83,46 +83,42 @@ jobs:
           rm -f "$SOURCE_ERROR"
 
           SCHEMA_OUTPUT=$(mktemp)
-          SCHEMA_ERROR=$(mktemp)
+          # Note: We don't capture stderr to a file - let errors show in logs immediately
 
           echo "Debug: Calling detect_schemas function..." >&2
           echo "Debug: Using PostgreSQL binary: $(get_pg_binary psql)" >&2
+          echo "Debug: PostgreSQL binary exists: $([ -f "$(get_pg_binary psql)" ] && echo 'yes' || echo 'no')" >&2
+          echo "Debug: Testing PostgreSQL connection..." >&2
 
-          detect_schemas "$SUPABASE_DB_URL" > "$SCHEMA_OUTPUT" 2> "$SCHEMA_ERROR"
-          EXIT_CODE=$?
-          set -e
-
-          if [ $EXIT_CODE -ne 0 ]; then
-            echo "Schema detection failed with exit code: $EXIT_CODE" >&2
+          # Run detect_schemas - errors will go to stderr (visible in logs)
+          # Capture stdout for processing
+          detect_schemas "$SUPABASE_DB_URL" > "$SCHEMA_OUTPUT" || {
+            EXIT_CODE=$?
+            set -e
             echo "" >&2
-            echo "=== Error output ===" >&2
-            if [ -s "$SCHEMA_ERROR" ]; then
-              cat "$SCHEMA_ERROR" >&2
-            else
-              echo "(Error file is empty or does not exist)" >&2
-              echo "Error file path: $SCHEMA_ERROR" >&2
-              ls -la "$SCHEMA_ERROR" >&2 || echo "Error file does not exist" >&2
-            fi
+            echo "=== Schema Detection Failed (Exit code: $EXIT_CODE) ===" >&2
             echo "" >&2
-            echo "=== Standard output ===" >&2
+            echo "=== Captured Standard Output ===" >&2
             if [ -s "$SCHEMA_OUTPUT" ]; then
               cat "$SCHEMA_OUTPUT" >&2
             else
-              echo "(Output file is empty or does not exist)" >&2
-              echo "Output file path: $SCHEMA_OUTPUT" >&2
-              ls -la "$SCHEMA_OUTPUT" >&2 || echo "Output file does not exist" >&2
+              echo "(Output file is empty)" >&2
             fi
             echo "" >&2
-            echo "=== Debug info ===" >&2
+            echo "=== Debug Information ===" >&2
             echo "PostgreSQL client location: $(get_pg_binary psql)" >&2
             echo "PostgreSQL client exists: $([ -f "$(get_pg_binary psql)" ] && echo 'yes' || echo 'no')" >&2
             echo "PostgreSQL client version: $($(get_pg_binary psql) --version 2>&1 || echo 'failed to get version')" >&2
-            rm -f "$SCHEMA_OUTPUT" "$SCHEMA_ERROR"
+            rm -f "$SCHEMA_OUTPUT"
             exit $EXIT_CODE
-          fi
+          }
+          EXIT_CODE=0
+          set -e
+
+          echo "Debug: detect_schemas completed successfully" >&2
 
           SCHEMAS=$(cat "$SCHEMA_OUTPUT" | grep -vE "^(Resolved|Warning)" | grep -E "^[a-zA-Z_][a-zA-Z0-9_]*$")
-          rm -f "$SCHEMA_OUTPUT" "$SCHEMA_ERROR"
+          rm -f "$SCHEMA_OUTPUT"
 
           if [ -z "$SCHEMAS" ]; then
             echo "Warning: No schemas detected" >&2
