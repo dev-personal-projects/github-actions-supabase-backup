@@ -27,14 +27,17 @@ fi
 OUTPUT_DIR=$(dirname "$OUTPUT_FILE")
 mkdir -p "$OUTPUT_DIR"
 
-# Backup roles
+# Backup roles using pg_dumpall directly (more reliable than supabase CLI for pooler connections)
 echo "Backing up database roles..."
-if ! supabase db dump \
-  --db-url "$DB_URL" \
-  --file "$OUTPUT_FILE" \
-  --role-only 2>/dev/null; then
+# Use pg_dumpall with --roles-only flag
+if ! pg_dumpall "$DB_URL" \
+  --roles-only \
+  --no-password \
+  > "$OUTPUT_FILE" 2>&1; then
   
   echo "Error: Failed to backup roles" >&2
+  # Show error but mask sensitive connection string details
+  cat "$OUTPUT_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
   exit 1
 fi
 
