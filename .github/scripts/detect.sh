@@ -33,7 +33,10 @@ detect_schemas() {
   rm -f "$ERROR_FILE"
 
   # Query schemas
-  psql "$DB_URL" -t -A -c "
+  local QUERY_OUTPUT=$(mktemp)
+  local QUERY_ERROR=$(mktemp)
+  
+  if ! psql "$DB_URL" -t -A -c "
     SELECT schema_name 
     FROM information_schema.schemata 
     WHERE schema_name NOT IN (
@@ -44,9 +47,21 @@ detect_schemas() {
     AND schema_name NOT LIKE 'pg_temp%'
     AND schema_name NOT LIKE 'pg_toast_temp%'
     ORDER BY schema_name;
-  " 2>&1 | grep -v '^$' | while read -r schema; do
+  " > "$QUERY_OUTPUT" 2> "$QUERY_ERROR"; then
+    echo "Error: Failed to query schemas" >&2
+    if [ -s "$QUERY_ERROR" ]; then
+      cat "$QUERY_ERROR" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    fi
+    rm -f "$QUERY_OUTPUT" "$QUERY_ERROR"
+    exit 1
+  fi
+  
+  # Output schemas (filter out empty lines)
+  grep -v '^$' "$QUERY_OUTPUT" | while read -r schema; do
     [ -n "$schema" ] && echo "$schema"
   done
+  
+  rm -f "$QUERY_OUTPUT" "$QUERY_ERROR"
 }
 
 # Detect tables in a specific schema
@@ -61,15 +76,27 @@ detect_tables() {
 
   DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
 
-  psql "$DB_URL" -t -A -c "
+  local QUERY_OUTPUT=$(mktemp)
+  local QUERY_ERROR=$(mktemp)
+  
+  if ! psql "$DB_URL" -t -A -c "
     SELECT table_name 
     FROM information_schema.tables 
     WHERE table_schema = '$SCHEMA'
     AND table_type = 'BASE TABLE'
     ORDER BY table_name;
-  " 2>&1 | grep -v '^$' | while read -r table; do
+  " > "$QUERY_OUTPUT" 2> "$QUERY_ERROR"; then
+    echo "Error: Failed to query tables in schema '$SCHEMA'" >&2
+    [ -s "$QUERY_ERROR" ] && cat "$QUERY_ERROR" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    rm -f "$QUERY_OUTPUT" "$QUERY_ERROR"
+    exit 1
+  fi
+  
+  grep -v '^$' "$QUERY_OUTPUT" | while read -r table; do
     [ -n "$table" ] && echo "$table"
   done
+  
+  rm -f "$QUERY_OUTPUT" "$QUERY_ERROR"
 }
 
 # Main entry point for command-line usage
