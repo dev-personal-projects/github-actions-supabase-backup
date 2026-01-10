@@ -16,14 +16,32 @@ force_ipv4_connection() {
     local DB="${BASH_REMATCH[5]}"
     local PARAMS="${BASH_REMATCH[6]}"
     
-    # Try to resolve to IPv4 address
-    local IPV4=$(getent ahostsv4 "$HOST" 2>/dev/null | awk '{print $1; exit}')
+    # Try multiple methods to resolve to IPv4 address
+    local IPV4=""
+    
+    # Method 1: Try getent ahostsv4
+    IPV4=$(getent ahostsv4 "$HOST" 2>/dev/null | awk '{print $1; exit}')
+    
+    # Method 2: Try dig if getent fails
+    if [ -z "$IPV4" ]; then
+      IPV4=$(dig +short A "$HOST" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+    fi
+    
+    # Method 3: Try host command if dig fails
+    if [ -z "$IPV4" ]; then
+      IPV4=$(host -t A "$HOST" 2>/dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1)
+    fi
+    
     if [ -n "$IPV4" ]; then
       echo "Resolved $HOST to IPv4: $IPV4" >&2
       # Reconstruct connection string with IP address
       DB_URL="postgresql://${USER}:${PASS}@${IPV4}:${PORT}/${DB}${PARAMS}"
     else
-      echo "Warning: Could not resolve $HOST to IPv4, using hostname" >&2
+      echo "Warning: Could not resolve $HOST to IPv4 using any method" >&2
+      echo "This may cause IPv6 connectivity issues. Consider:" >&2
+      echo "1. Using Supabase Session Pooler (IPv4 compatible)" >&2
+      echo "2. Configuring IPv4 add-on in Supabase dashboard" >&2
+      echo "3. Using direct connection with IPv4 support" >&2
     fi
   fi
   
