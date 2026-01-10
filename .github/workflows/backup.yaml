@@ -53,7 +53,17 @@ jobs:
         if: env.BACKUP_ENABLED == 'true'
         id: detect-schemas
         run: |
-          SCHEMAS=$(.github/scripts/detect-schemas.sh "$SUPABASE_DB_URL")
+          set +e  # Allow script to handle errors
+          SCHEMAS=$(.github/scripts/detect-schemas.sh "$SUPABASE_DB_URL" 2>&1)
+          EXIT_CODE=$?
+          set -e
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "Schema detection failed. Error output:" >&2
+            echo "$SCHEMAS" >&2
+            exit $EXIT_CODE
+          fi
+
           echo "schemas<<EOF" >> $GITHUB_OUTPUT
           echo "$SCHEMAS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT

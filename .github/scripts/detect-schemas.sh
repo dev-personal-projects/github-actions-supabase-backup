@@ -13,6 +13,14 @@ if [ -z "$DB_URL" ]; then
 fi
 
 # Query to detect user schemas (excluding system schemas)
+# First test connection, then query
+if ! psql "$DB_URL" -c "SELECT 1;" >/dev/null 2>&1; then
+  echo "Error: Failed to connect to database" >&2
+  echo "Please verify the connection string is correct and URL-encoded" >&2
+  echo "Special characters in password must be URL-encoded (e.g., @ becomes %40)" >&2
+  exit 1
+fi
+
 SCHEMAS=$(psql "$DB_URL" -t -A -c "
   SELECT schema_name 
   FROM information_schema.schemata 
