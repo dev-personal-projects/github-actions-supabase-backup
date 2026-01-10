@@ -4,6 +4,10 @@
 
 set -euo pipefail
 
+# Source common functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+
 # Input: Database connection string and schema name
 DB_URL="${1:-}"
 SCHEMA="${2:-}"
@@ -14,14 +18,8 @@ if [ -z "$DB_URL" ] || [ -z "$SCHEMA" ]; then
   exit 1
 fi
 
-# Supabase requires SSL connections - add ?sslmode=require if not present
-if [[ "$DB_URL" != *"sslmode"* ]]; then
-  if [[ "$DB_URL" == *"?"* ]]; then
-    DB_URL="${DB_URL}&sslmode=require"
-  else
-    DB_URL="${DB_URL}?sslmode=require"
-  fi
-fi
+# Force IPv4 and ensure SSL
+DB_URL=$(force_ipv4_connection "$DB_URL")
 
 # Query to detect tables in the schema
 TABLES=$(psql "$DB_URL" -t -A -c "

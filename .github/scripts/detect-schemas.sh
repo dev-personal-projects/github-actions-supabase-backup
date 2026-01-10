@@ -4,6 +4,10 @@
 
 set -uo pipefail  # Don't exit on error immediately, we'll handle it
 
+# Source common functions
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/common.sh"
+
 # Input: Database connection string
 DB_URL="${1:-}"
 
@@ -12,37 +16,8 @@ if [ -z "$DB_URL" ]; then
   exit 1
 fi
 
-# Force IPv4 by resolving hostname to IPv4 address
-# Extract hostname from connection string (format: postgresql://user:pass@host:port/db)
-if [[ "$DB_URL" =~ postgresql://([^:]+):([^@]+)@([^:/]+):([0-9]+)/(.+) ]]; then
-  USER="${BASH_REMATCH[1]}"
-  PASS="${BASH_REMATCH[2]}"
-  HOST="${BASH_REMATCH[3]}"
-  PORT="${BASH_REMATCH[4]}"
-  DB="${BASH_REMATCH[5]}"
-  
-  # Try to resolve to IPv4 address
-  IPV4=$(getent ahostsv4 "$HOST" 2>/dev/null | awk '{print $1; exit}')
-  if [ -n "$IPV4" ]; then
-    echo "Resolved $HOST to IPv4: $IPV4" >&2
-    # Reconstruct connection string with IP address
-    DB_URL="postgresql://${USER}:${PASS}@${IPV4}:${PORT}/${DB}"
-  else
-    echo "Warning: Could not resolve $HOST to IPv4, using hostname" >&2
-  fi
-fi
-
-# Query to detect user schemas (excluding system schemas)
-# First test connection with better error reporting
-# Supabase requires SSL connections - add ?sslmode=require if not present
-# Note: Pooler connections (port 6543) should already have sslmode in the connection string
-if [[ "$DB_URL" != *"sslmode"* ]]; then
-  if [[ "$DB_URL" == *"?"* ]]; then
-    DB_URL="${DB_URL}&sslmode=require"
-  else
-    DB_URL="${DB_URL}?sslmode=require"
-  fi
-fi
+# Force IPv4 and ensure SSL
+DB_URL=$(force_ipv4_connection "$DB_URL")
 
 CONNECTION_TEST=$(psql "$DB_URL" -c "SELECT 1;" 2>&1)
 CONNECTION_EXIT=$?
