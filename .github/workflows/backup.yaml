@@ -63,8 +63,17 @@ jobs:
         run: |
           set +e
 
-          # Source the script and capture any sourcing errors
+          # Source common.sh first for utility functions
           SOURCE_ERROR=$(mktemp)
+          if ! source .github/scripts/common.sh 2> "$SOURCE_ERROR"; then
+            echo "Error: Failed to source common.sh" >&2
+            cat "$SOURCE_ERROR" >&2
+            rm -f "$SOURCE_ERROR"
+            exit 1
+          fi
+          rm -f "$SOURCE_ERROR"
+
+          # Source the script and capture any sourcing errors
           if ! source .github/scripts/detect.sh 2> "$SOURCE_ERROR"; then
             echo "Error: Failed to source detect.sh" >&2
             cat "$SOURCE_ERROR" >&2
@@ -76,25 +85,38 @@ jobs:
           SCHEMA_OUTPUT=$(mktemp)
           SCHEMA_ERROR=$(mktemp)
 
+          echo "Debug: Calling detect_schemas function..." >&2
+          echo "Debug: Using PostgreSQL binary: $(get_pg_binary psql)" >&2
+
           detect_schemas "$SUPABASE_DB_URL" > "$SCHEMA_OUTPUT" 2> "$SCHEMA_ERROR"
           EXIT_CODE=$?
           set -e
 
           if [ $EXIT_CODE -ne 0 ]; then
             echo "Schema detection failed with exit code: $EXIT_CODE" >&2
-            echo "Error output:" >&2
+            echo "" >&2
+            echo "=== Error output ===" >&2
             if [ -s "$SCHEMA_ERROR" ]; then
               cat "$SCHEMA_ERROR" >&2
             else
-              echo "(Error file is empty)" >&2
+              echo "(Error file is empty or does not exist)" >&2
+              echo "Error file path: $SCHEMA_ERROR" >&2
+              ls -la "$SCHEMA_ERROR" >&2 || echo "Error file does not exist" >&2
             fi
             echo "" >&2
-            echo "Standard output:" >&2
+            echo "=== Standard output ===" >&2
             if [ -s "$SCHEMA_OUTPUT" ]; then
               cat "$SCHEMA_OUTPUT" >&2
             else
-              echo "(Output file is empty)" >&2
+              echo "(Output file is empty or does not exist)" >&2
+              echo "Output file path: $SCHEMA_OUTPUT" >&2
+              ls -la "$SCHEMA_OUTPUT" >&2 || echo "Output file does not exist" >&2
             fi
+            echo "" >&2
+            echo "=== Debug info ===" >&2
+            echo "PostgreSQL client location: $(get_pg_binary psql)" >&2
+            echo "PostgreSQL client exists: $([ -f "$(get_pg_binary psql)" ] && echo 'yes' || echo 'no')" >&2
+            echo "PostgreSQL client version: $($(get_pg_binary psql) --version 2>&1 || echo 'failed to get version')" >&2
             rm -f "$SCHEMA_OUTPUT" "$SCHEMA_ERROR"
             exit $EXIT_CODE
           fi

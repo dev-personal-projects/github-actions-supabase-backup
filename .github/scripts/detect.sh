@@ -18,14 +18,27 @@ detect_schemas() {
 
   # Force IPv4 and ensure SSL (capture resolution messages separately)
   local RESOLUTION_MSG=$(mktemp)
-  DB_URL=$(force_ipv4_connection "$DB_URL" 2> "$RESOLUTION_MSG")
+  DB_URL=$(force_ipv4_connection "$DB_URL" "$RESOLUTION_MSG")
+  # Output resolution messages to stderr if any
+  if [ -s "$RESOLUTION_MSG" ]; then
+    cat "$RESOLUTION_MSG" >&2
+  fi
   rm -f "$RESOLUTION_MSG"
 
   # Test connection
   local PSQL=$(get_pg_binary "psql")
+  
+  # Verify psql binary exists
+  if [ ! -f "$PSQL" ] && ! command -v "$PSQL" >/dev/null 2>&1; then
+    echo "Error: PostgreSQL client not found at: $PSQL" >&2
+    echo "Attempted to find: $(get_pg_binary psql)" >&2
+    exit 1
+  fi
+  
   local ERROR_FILE=$(mktemp)
   if ! $PSQL "$DB_URL" -c "SELECT 1;" >/dev/null 2> "$ERROR_FILE"; then
     echo "Error: Failed to connect to database" >&2
+    echo "Using psql: $PSQL" >&2
     if [ -s "$ERROR_FILE" ]; then
       echo "psql error:" >&2
       cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
