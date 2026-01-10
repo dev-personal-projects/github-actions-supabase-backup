@@ -5,7 +5,7 @@ on:
     branches: [main, dev]
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *" # Runs every day at midnight (configure in ONE repo only)
+    - cron: "0 0 * * *"
 
 env:
   BACKUP_ENABLED: true
@@ -18,7 +18,7 @@ jobs:
       contents: write
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-      BACKUP_ENABLED: ${{ vars.BACKUP_ENABLED }} # Repository variable (true or false)
+      BACKUP_ENABLED: ${{ vars.BACKUP_ENABLED }}
     steps:
       - name: Check if backups are enabled
         run: |
@@ -44,17 +44,12 @@ jobs:
         if: env.BACKUP_ENABLED == 'true'
         run: |
           sudo apt-get update
-          # Remove default postgresql-client if installed to avoid version conflicts
           sudo apt-get remove -y postgresql-client 2>/dev/null || true
-          # Install PostgreSQL 17 client to match server version
           sudo apt-get install -y wget ca-certificates
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
           echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
           sudo apt-get install -y postgresql-client-17
-          # Verify PostgreSQL 17 is being used
-          /usr/lib/postgresql/17/bin/pg_dump --version
-          /usr/lib/postgresql/17/bin/pg_dumpall --version
 
       - name: Setup backup environment
         if: env.BACKUP_ENABLED == 'true'
@@ -67,29 +62,32 @@ jobs:
         id: detect-schemas
         run: |
           source .github/scripts/detect.sh
+
+          SCHEMA_OUTPUT=$(mktemp)
+          SCHEMA_ERROR=$(mktemp)
+
           set +e
-          # Capture only stdout (schemas), filter out any non-schema lines
-          SCHEMAS=$(detect_schemas "$SUPABASE_DB_URL" 2>&1 | grep -v "^Resolved" | grep -v "^Warning" | grep -v "^$")
+          detect_schemas "$SUPABASE_DB_URL" > "$SCHEMA_OUTPUT" 2> "$SCHEMA_ERROR"
           EXIT_CODE=$?
           set -e
 
           if [ $EXIT_CODE -ne 0 ]; then
-            echo "Schema detection failed. Error output:" >&2
-            detect_schemas "$SUPABASE_DB_URL" >&2
+            echo "Schema detection failed:" >&2
+            cat "$SCHEMA_ERROR" >&2
+            rm -f "$SCHEMA_OUTPUT" "$SCHEMA_ERROR"
             exit $EXIT_CODE
           fi
 
-          # Filter out empty lines and non-schema output
-          SCHEMAS=$(echo "$SCHEMAS" | grep -v "^Resolved" | grep -v "^Warning" | grep -v "^$" | grep -E "^[a-zA-Z_][a-zA-Z0-9_]*$")
+          SCHEMAS=$(cat "$SCHEMA_OUTPUT" | grep -vE "^(Resolved|Warning)" | grep -E "^[a-zA-Z_][a-zA-Z0-9_]*$")
+          rm -f "$SCHEMA_OUTPUT" "$SCHEMA_ERROR"
 
           echo "schemas<<EOF" >> $GITHUB_OUTPUT
           echo "$SCHEMAS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+
           echo "Detected schemas:"
           echo "$SCHEMAS" | while read schema; do
-            if [ -n "$schema" ]; then
-              echo "  - $schema"
-            fi
+            [ -n "$schema" ] && echo "  - $schema"
           done
 
       - name: Backup roles
@@ -103,17 +101,16 @@ jobs:
         run: |
           source .github/scripts/backup.sh
           SCHEMAS="${{ steps.detect-schemas.outputs.schemas }}"
+
           if [ -z "$SCHEMAS" ]; then
             echo "No schemas detected. Exiting."
             exit 0
           fi
 
           while IFS= read -r schema; do
-            if [ -n "$schema" ]; then
-              backup_schema "$SUPABASE_DB_URL" "$schema" "$BACKUP_DIR/latest" || {
-                echo "Warning: Failed to backup schema $schema, continuing..." >&2
-              }
-            fi
+            [ -n "$schema" ] && backup_schema "$SUPABASE_DB_URL" "$schema" "$BACKUP_DIR/latest" || {
+              echo "Warning: Failed to backup schema $schema, continuing..." >&2
+            }
           done <<< "$SCHEMAS"
 
       - name: Commit backups
@@ -123,4 +120,3 @@ jobs:
           commit_message: "Backup: Supabase database backup - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
           file_pattern: "backups/**"
           branch: ${{ github.head_ref || github.ref_name }}
-          skip_dirty_check: false
