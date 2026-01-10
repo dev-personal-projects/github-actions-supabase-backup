@@ -9,13 +9,21 @@ Phase 1: Core Backup Workflow (Foundation) has been successfully implemented wit
 ## 📁 Files Created
 
 ### Scripts (`.github/scripts/`)
-1. **`detect-schemas.sh`** - Detects user schemas, excludes Supabase system schemas
-2. **`detect-tables.sh`** - Detects tables in a specific schema
-3. **`create-directories.sh`** - Creates backup directory structure automatically
-4. **`backup-table.sh`** - Backs up a single table (schema + data)
-5. **`backup-roles.sh`** - Backs up database roles
-6. **`backup-schema.sh`** - Orchestrates backup of all tables in a schema
-7. **`README.md`** - Documentation for all scripts
+1. **`common.sh`** - Common utility functions
+   - `get_pg_binary()` - Gets PostgreSQL 17 binary path
+   - `force_ipv4_connection()` - Forces IPv4 resolution and ensures SSL
+   - `url_decode()` - URL decodes connection string components
+
+2. **`detect.sh`** - Schema and table detection functions
+   - `detect_schemas()` - Detects user schemas, excludes Supabase system schemas
+   - `detect_tables()` - Detects tables in a specific schema
+   - Uses PostgreSQL 17 client via `get_pg_binary()`
+
+3. **`backup.sh`** - Backup execution functions
+   - `backup_roles()` - Backs up database roles using `pg_dumpall`
+   - `backup_table()` - Backs up a single table (schema + data) using `pg_dump`
+   - `backup_schema()` - Orchestrates backup of all tables in a schema
+   - Uses PostgreSQL 17 client via `get_pg_binary()`
 
 ### Workflow
 - **`.github/workflows/backup.yaml`** - Main workflow file (clean, modular)
@@ -31,10 +39,12 @@ Phase 1: Core Backup Workflow (Foundation) has been successfully implemented wit
 - **Maintainability**: Easy to update individual components
 
 ### Security
-- ✅ `set -euo pipefail` in all scripts (strict error handling)
-- ✅ Database URLs never logged or exposed
-- ✅ Parameter validation in all scripts
+- ✅ `set -euo pipefail` in scripts when run directly (sourced scripts use conditional error handling)
+- ✅ Database URLs never logged or exposed (masked in error output)
+- ✅ Parameter validation in all functions
 - ✅ Error messages written to stderr
+- ✅ Uses PostgreSQL 17 client binaries explicitly (via `get_pg_binary()`)
+- ✅ Forces IPv4 connections and ensures SSL mode
 
 ### Code Quality
 - ✅ Clean, readable code
@@ -48,16 +58,18 @@ Phase 1: Core Backup Workflow (Foundation) has been successfully implemented wit
 
 1. **Check if backups enabled** - Early exit if disabled
 2. **Checkout repository** - Get scripts and workflow
-3. **Setup Supabase CLI** - Install latest version
-4. **Setup PostgreSQL client** - Install psql for schema detection
-5. **Create directory structure** - Auto-create `backups/latest/` and `backups/archive/`
-6. **Detect schemas** - Automatically discover user schemas
-7. **Backup roles** - Create `backups/latest/roles.sql`
-8. **Backup schemas and tables** - For each schema:
-   - Detect tables
-   - Backup each table individually
-   - Create `{schema}/tables/{table}/schema.sql` and `data.sql`
-9. **Commit backups** - Auto-commit to repository
+3. **Setup Supabase CLI** - Install latest version (for restoration, not used in backup)
+4. **Setup PostgreSQL client** - Install PostgreSQL 17 client for schema detection and backups
+5. **Setup backup environment** - Make scripts executable, create `backups/latest/` and `backups/archive/` directories
+6. **Detect schemas** - Source `detect.sh` and call `detect_schemas()` to automatically discover user schemas
+7. **Backup roles** - Source `backup.sh` and call `backup_roles()` to create `backups/latest/roles.sql` using `pg_dumpall`
+8. **Backup schemas and tables** - For each detected schema:
+   - Source `backup.sh` and call `backup_schema()` which:
+     - Calls `detect_tables()` to find all tables
+     - For each table, calls `backup_table()` which uses `pg_dump` to create:
+       - `{schema}/tables/{table}/schema.sql` (structure only)
+       - `{schema}/tables/{table}/data.sql` (data only)
+9. **Commit backups** - Auto-commit to repository using git-auto-commit-action
 
 ---
 
@@ -114,7 +126,8 @@ backups/
 ### Syntax Validation
 - ✅ All scripts have valid bash syntax
 - ✅ Workflow YAML is valid
-- ✅ Directory creation script tested and working
+- ✅ Scripts can be sourced or run directly
+- ✅ Functions properly exported when sourced
 
 ### Ready for Database Testing
 - ⏳ Needs connection to Supabase database for full testing
@@ -148,10 +161,14 @@ backups/
 
 ## 📝 Notes
 
-- All scripts are executable and ready to use
+- Scripts use function-based architecture (sourced, not executed directly)
+- All scripts are executable and can be sourced
 - Workflow is clean and modular
 - No hardcoded values - everything is configurable
+- Uses PostgreSQL 17 client tools directly (`pg_dump`, `pg_dumpall`, `psql`)
 - Follows best practices for security and maintainability
+- PostgreSQL 17 client path resolution ensures correct binary usage
+- IPv4 connection forcing and SSL enforcement for secure connections
 - Ready for production use after testing
 
 ---
