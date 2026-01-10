@@ -22,8 +22,9 @@ detect_schemas() {
   rm -f "$RESOLUTION_MSG"
 
   # Test connection
+  local PSQL=$(get_pg_binary "psql")
   local ERROR_FILE=$(mktemp)
-  if ! psql "$DB_URL" -c "SELECT 1;" >/dev/null 2> "$ERROR_FILE"; then
+  if ! $PSQL "$DB_URL" -c "SELECT 1;" >/dev/null 2> "$ERROR_FILE"; then
     echo "Error: Failed to connect to database" >&2
     if [ -s "$ERROR_FILE" ]; then
       echo "psql error:" >&2
@@ -40,7 +41,7 @@ detect_schemas() {
   local QUERY_OUTPUT=$(mktemp)
   local QUERY_ERROR=$(mktemp)
   
-  if ! psql "$DB_URL" -t -A -c "
+  if ! $PSQL "$DB_URL" -t -A -c "
     SELECT schema_name 
     FROM information_schema.schemata 
     WHERE schema_name NOT IN (
@@ -80,10 +81,11 @@ detect_tables() {
 
   DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
 
+  local PSQL=$(get_pg_binary "psql")
   local QUERY_OUTPUT=$(mktemp)
   local QUERY_ERROR=$(mktemp)
   
-  if ! psql "$DB_URL" -t -A -c "
+  if ! $PSQL "$DB_URL" -t -A -c "
     SELECT table_name 
     FROM information_schema.tables 
     WHERE table_schema = '$SCHEMA'
