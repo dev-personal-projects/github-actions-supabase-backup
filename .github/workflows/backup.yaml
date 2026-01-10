@@ -30,6 +30,9 @@ jobs:
       - name: Checkout repository
         if: env.BACKUP_ENABLED == 'true'
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
 
       - name: Setup Supabase CLI
         if: env.BACKUP_ENABLED == 'true'
@@ -43,18 +46,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
 
-      - name: Create directory structure
+      - name: Setup backup environment
         if: env.BACKUP_ENABLED == 'true'
         run: |
           chmod +x .github/scripts/*.sh
-          .github/scripts/create-directories.sh "$BACKUP_DIR"
+          mkdir -p "$BACKUP_DIR/latest" "$BACKUP_DIR/archive"
 
       - name: Detect schemas
         if: env.BACKUP_ENABLED == 'true'
         id: detect-schemas
         run: |
-          set +e  # Allow script to handle errors
-          SCHEMAS=$(.github/scripts/detect-schemas.sh "$SUPABASE_DB_URL" 2>&1)
+          set +e
+          SCHEMAS=$(source .github/scripts/detect.sh && detect_schemas "$SUPABASE_DB_URL" 2>&1)
           EXIT_CODE=$?
           set -e
 
@@ -75,26 +78,22 @@ jobs:
       - name: Backup roles
         if: env.BACKUP_ENABLED == 'true'
         run: |
-          .github/scripts/backup-roles.sh "$SUPABASE_DB_URL" "$BACKUP_DIR/latest/roles.sql"
+          source .github/scripts/backup.sh
+          backup_roles "$SUPABASE_DB_URL" "$BACKUP_DIR/latest/roles.sql"
 
       - name: Backup schemas and tables
         if: env.BACKUP_ENABLED == 'true'
         run: |
+          source .github/scripts/backup.sh
           SCHEMAS="${{ steps.detect-schemas.outputs.schemas }}"
           if [ -z "$SCHEMAS" ]; then
             echo "No schemas detected. Exiting."
             exit 0
           fi
 
-          # Process each schema
           while IFS= read -r schema; do
             if [ -n "$schema" ]; then
-              echo "Processing schema: $schema"
-              .github/scripts/backup-schema.sh \
-                "$SUPABASE_DB_URL" \
-                "$schema" \
-                "$BACKUP_DIR/latest" \
-                "$(pwd)/.github/scripts" || {
+              backup_schema "$SUPABASE_DB_URL" "$schema" "$BACKUP_DIR/latest" || {
                 echo "Warning: Failed to backup schema $schema, continuing..." >&2
               }
             fi
@@ -106,3 +105,5 @@ jobs:
         with:
           commit_message: "Backup: Supabase database backup - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
           file_pattern: "backups/**"
+          branch: ${{ github.head_ref || github.ref_name }}
+          skip_dirty_check: false

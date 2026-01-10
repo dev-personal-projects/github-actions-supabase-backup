@@ -38,10 +38,6 @@ force_ipv4_connection() {
       DB_URL="postgresql://${USER}:${PASS}@${IPV4}:${PORT}/${DB}${PARAMS}"
     else
       echo "Warning: Could not resolve $HOST to IPv4 using any method" >&2
-      echo "This may cause IPv6 connectivity issues. Consider:" >&2
-      echo "1. Using Supabase Session Pooler (IPv4 compatible)" >&2
-      echo "2. Configuring IPv4 add-on in Supabase dashboard" >&2
-      echo "3. Using direct connection with IPv4 support" >&2
     fi
   fi
   
