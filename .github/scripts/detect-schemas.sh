@@ -13,11 +13,25 @@ if [ -z "$DB_URL" ]; then
 fi
 
 # Query to detect user schemas (excluding system schemas)
-# First test connection, then query
-if ! psql "$DB_URL" -c "SELECT 1;" >/dev/null 2>&1; then
+# First test connection with better error reporting
+CONNECTION_TEST=$(psql "$DB_URL" -c "SELECT 1;" 2>&1)
+CONNECTION_EXIT=$?
+
+if [ $CONNECTION_EXIT -ne 0 ]; then
   echo "Error: Failed to connect to database" >&2
-  echo "Please verify the connection string is correct and URL-encoded" >&2
-  echo "Special characters in password must be URL-encoded (e.g., @ becomes %40)" >&2
+  echo "Exit code: $CONNECTION_EXIT" >&2
+  echo "Connection test output:" >&2
+  # Mask password in error output
+  echo "$CONNECTION_TEST" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+  echo "" >&2
+  echo "Troubleshooting:" >&2
+  echo "1. Verify the connection string is correct" >&2
+  echo "2. Special characters in password must be URL-encoded:" >&2
+  echo "   - @ becomes %40" >&2
+  echo "   - : becomes %3A" >&2
+  echo "   - / becomes %2F" >&2
+  echo "   - # becomes %23" >&2
+  echo "3. Example: password 'pass@word' should be 'pass%40word'" >&2
   exit 1
 fi
 
