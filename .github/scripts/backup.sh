@@ -26,8 +26,41 @@ backup_roles() {
   local OUTPUT_DIR=$(dirname "$OUTPUT_FILE")
   mkdir -p "$OUTPUT_DIR"
 
+  # Parse connection string for pg_dumpall (it doesn't accept connection strings directly)
+  # Format: postgresql://user:pass@host:port/db?params
+  if [[ "$DB_URL" =~ postgresql://([^:]+):([^@]+)@([^:/]+):([0-9]+)/([^?]*)(.*) ]]; then
+    local PGUSER="${BASH_REMATCH[1]}"
+    local PGPASSWORD="${BASH_REMATCH[2]}"
+    local PGHOST="${BASH_REMATCH[3]}"
+    local PGPORT="${BASH_REMATCH[4]}"
+    local PGDATABASE="${BASH_REMATCH[5]}"
+    
+    # Extract SSL mode from params if present
+    local SSL_MODE=""
+    if [[ "${BASH_REMATCH[6]}" =~ sslmode=([^&]+) ]]; then
+      SSL_MODE="${BASH_REMATCH[1]}"
+    fi
+  else
+    echo "Error: Invalid connection string format" >&2
+    exit 1
+  fi
+
   echo "Backing up database roles..."
-  if ! pg_dumpall "$DB_URL" \
+  
+  # Export connection parameters as environment variables
+  export PGHOST="$PGHOST"
+  export PGPORT="$PGPORT"
+  export PGUSER="$PGUSER"
+  export PGPASSWORD="$PGPASSWORD"
+  export PGDATABASE="$PGDATABASE"
+  
+  # Set SSL mode if specified
+  if [ -n "$SSL_MODE" ]; then
+    export PGSSLMODE="$SSL_MODE"
+  fi
+
+  # Use pg_dumpall with connection via environment variables
+  if ! pg_dumpall \
     --roles-only \
     --no-password \
     > "$OUTPUT_FILE" 2>&1; then
@@ -36,6 +69,9 @@ backup_roles() {
     cat "$OUTPUT_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
     exit 1
   fi
+
+  # Unset sensitive environment variables
+  unset PGPASSWORD
 
   if [ ! -f "$OUTPUT_FILE" ]; then
     echo "Error: Roles backup file not created" >&2
