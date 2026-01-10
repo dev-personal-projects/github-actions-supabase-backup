@@ -72,14 +72,22 @@ jobs:
           set -e
 
           if [ $EXIT_CODE -ne 0 ]; then
-            echo "Schema detection failed:" >&2
+            echo "Schema detection failed with exit code: $EXIT_CODE" >&2
+            echo "Error output:" >&2
             cat "$SCHEMA_ERROR" >&2
+            echo "" >&2
+            echo "Standard output:" >&2
+            cat "$SCHEMA_OUTPUT" >&2
             rm -f "$SCHEMA_OUTPUT" "$SCHEMA_ERROR"
             exit $EXIT_CODE
           fi
 
           SCHEMAS=$(cat "$SCHEMA_OUTPUT" | grep -vE "^(Resolved|Warning)" | grep -E "^[a-zA-Z_][a-zA-Z0-9_]*$")
           rm -f "$SCHEMA_OUTPUT" "$SCHEMA_ERROR"
+
+          if [ -z "$SCHEMAS" ]; then
+            echo "Warning: No schemas detected" >&2
+          fi
 
           echo "schemas<<EOF" >> $GITHUB_OUTPUT
           echo "$SCHEMAS" >> $GITHUB_OUTPUT

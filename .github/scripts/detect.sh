@@ -12,13 +12,21 @@ detect_schemas() {
   
   [ -z "$DB_URL" ] && { echo "Error: Database URL is required" >&2; exit 1; }
 
-  DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
+  # Force IPv4 and ensure SSL (capture resolution messages separately)
+  local RESOLUTION_MSG=$(mktemp)
+  DB_URL=$(force_ipv4_connection "$DB_URL" 2> "$RESOLUTION_MSG")
+  rm -f "$RESOLUTION_MSG"
 
   # Test connection
   local ERROR_FILE=$(mktemp)
   if ! psql "$DB_URL" -c "SELECT 1;" >/dev/null 2> "$ERROR_FILE"; then
     echo "Error: Failed to connect to database" >&2
-    cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    if [ -s "$ERROR_FILE" ]; then
+      echo "psql error:" >&2
+      cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    else
+      echo "No error details available (empty error file)" >&2
+    fi
     rm -f "$ERROR_FILE"
     exit 1
   fi
