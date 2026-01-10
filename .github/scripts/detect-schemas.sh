@@ -2,7 +2,7 @@
 # Detect user schemas in Supabase database
 # Excludes Supabase system schemas automatically
 
-set -euo pipefail
+set -uo pipefail  # Don't exit on error immediately, we'll handle it
 
 # Input: Database connection string
 DB_URL="${1:-}"
