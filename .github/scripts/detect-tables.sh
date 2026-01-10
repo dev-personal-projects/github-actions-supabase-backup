@@ -14,6 +14,15 @@ if [ -z "$DB_URL" ] || [ -z "$SCHEMA" ]; then
   exit 1
 fi
 
+# Supabase requires SSL connections - add ?sslmode=require if not present
+if [[ "$DB_URL" != *"sslmode"* ]]; then
+  if [[ "$DB_URL" == *"?"* ]]; then
+    DB_URL="${DB_URL}&sslmode=require"
+  else
+    DB_URL="${DB_URL}?sslmode=require"
+  fi
+fi
+
 # Query to detect tables in the schema
 TABLES=$(psql "$DB_URL" -t -A -c "
   SELECT table_name 

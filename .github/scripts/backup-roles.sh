@@ -14,6 +14,15 @@ if [ -z "$DB_URL" ] || [ -z "$OUTPUT_FILE" ]; then
   exit 1
 fi
 
+# Supabase requires SSL connections - add ?sslmode=require if not present
+if [[ "$DB_URL" != *"sslmode"* ]]; then
+  if [[ "$DB_URL" == *"?"* ]]; then
+    DB_URL="${DB_URL}&sslmode=require"
+  else
+    DB_URL="${DB_URL}?sslmode=require"
+  fi
+fi
+
 # Create output directory if it doesn't exist
 OUTPUT_DIR=$(dirname "$OUTPUT_FILE")
 mkdir -p "$OUTPUT_DIR"
