@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict CjGEyegGgj6lcziALq1pcK1yrlIaouOkJbX6BW2MVEdfxgVErOIL8QTmPwbhuWn
+\restrict RXyUCRyAvvdsg4PCfcFFESPpAKR2WG14IaINnMMogcDZp5vKbN7Q8pBOEFXGSA8
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -38,5 +38,5 @@ SELECT pg_catalog.setval('lh_payproof.sent_logs_sent_log_id_seq', 1, false);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict CjGEyegGgj6lcziALq1pcK1yrlIaouOkJbX6BW2MVEdfxgVErOIL8QTmPwbhuWn
+\unrestrict RXyUCRyAvvdsg4PCfcFFESPpAKR2WG14IaINnMMogcDZp5vKbN7Q8pBOEFXGSA8
 

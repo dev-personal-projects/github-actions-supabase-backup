@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LDyaJgxYMb4H1CiQl7FbdepQyIeT06p3YObFgds2nBJQTRyAOpj8FeDXcUaEWd0
+\restrict 8MvKkwiTFbMp0zGukuJvZyXwPg30juVusN4Y3IkDYVo3Jgwib6uPSZzZ3EJS6Lg
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -41,5 +41,5 @@ SELECT pg_catalog.setval('public.customer_contracts_cctr_id_seq', 3, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LDyaJgxYMb4H1CiQl7FbdepQyIeT06p3YObFgds2nBJQTRyAOpj8FeDXcUaEWd0
+\unrestrict 8MvKkwiTFbMp0zGukuJvZyXwPg30juVusN4Y3IkDYVo3Jgwib6uPSZzZ3EJS6Lg
 

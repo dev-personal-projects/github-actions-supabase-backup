@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 7tnXuHCWtP9MVVTBfFVswDVekdw70m4JshwZfgoRsCa657eh9VkWy80sdJRbbOh
+\restrict 1kdL6DVGL3evJabgCjbkjTZZUbAbhq4VSjvnFgez2N2hxo43fda0vfedhHze7hP
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -155,5 +155,5 @@ ALTER TABLE public.customer_order_forms ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 7tnXuHCWtP9MVVTBfFVswDVekdw70m4JshwZfgoRsCa657eh9VkWy80sdJRbbOh
+\unrestrict 1kdL6DVGL3evJabgCjbkjTZZUbAbhq4VSjvnFgez2N2hxo43fda0vfedhHze7hP
 

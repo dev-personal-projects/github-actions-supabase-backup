@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict bqtgT6OV8PJSPPJEoRJGGeGTWhOULCnLuaPrdeoX6EHMlfiskN5PfcdE8WGfNBe
+\restrict HrmBhPnx7vvaRRmtXxY1KYagMUg0kObaduCgzyNCn4hIcF2f72d62sroLwgbapr
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -37,7 +37,6 @@ CREATE TABLE lh_billing.billing_schedules (
     period_alignment text DEFAULT 'calendar_quarter'::text NOT NULL,
     anchor_date date,
     preferred_invoice_grouping text DEFAULT 'per_company'::text NOT NULL,
-    last_invoiced_period_end date,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     CONSTRAINT ck_billing_schedules__anchor_date_required_when_alignment_is_an CHECK (((period_alignment <> 'anchor_date'::text) OR (anchor_date IS NOT NULL))),
@@ -171,5 +170,5 @@ ALTER TABLE lh_billing.billing_schedules ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bqtgT6OV8PJSPPJEoRJGGeGTWhOULCnLuaPrdeoX6EHMlfiskN5PfcdE8WGfNBe
+\unrestrict HrmBhPnx7vvaRRmtXxY1KYagMUg0kObaduCgzyNCn4hIcF2f72d62sroLwgbapr
 

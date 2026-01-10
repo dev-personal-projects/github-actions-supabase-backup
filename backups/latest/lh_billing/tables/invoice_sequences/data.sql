@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict iIpRu3v2eN4IKLHS85dp2ljSR0cjYYQLu8PGTktd0rhGJBFKMnco18PpPHG1Z7g
+\restrict b1etjBqdwnyg46ilD92tRefmXTEKODje4oExQvd943h3zfmfTB6eE08yj2Fh3jf
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -24,7 +24,7 @@ SET row_security = off;
 --
 
 COPY lh_billing.invoice_sequences (invoice_sequence_id, context_key, prefix, last_number, format, created_at, updated_at) FROM stdin;
-1	default	INV	9000	{prefix}-{year}-{number:06}	2026-01-09 09:29:44.108862+00	2026-01-09 09:29:44.108862+00
+1	default	INV	9000	{prefix}-{year}-{number:06}	2026-01-10 20:16:59.537972+00	2026-01-10 20:16:59.537972+00
 \.
 
 
@@ -39,5 +39,5 @@ SELECT pg_catalog.setval('lh_billing.invoice_sequences_invoice_sequence_id_seq',
 -- PostgreSQL database dump complete
 --
 
-\unrestrict iIpRu3v2eN4IKLHS85dp2ljSR0cjYYQLu8PGTktd0rhGJBFKMnco18PpPHG1Z7g
+\unrestrict b1etjBqdwnyg46ilD92tRefmXTEKODje4oExQvd943h3zfmfTB6eE08yj2Fh3jf
 

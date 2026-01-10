@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict TVD9zt9Uf2Ih7LEyt7RIrLxx3ulyOXpLHlafmSxyUKhEljsAreLT2ybWbwsxK4N
+\restrict GgOjfefIcr1QrbmS7ET3UPH4tDPSPXO32gnh9xDPr1pK7Jf3Qh1RDDoFwfBDml6
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -24,16 +24,16 @@ SET row_security = off;
 --
 
 COPY lh_billing.configuration (configuration_id, cfg_key, cfg_value, cfg_description, cmp_id, created_at, updated_at) FROM stdin;
-1	InvoiceSenderEmail	billing@shipht.it	Email address used to send customer invoices	\N	2026-01-09 09:29:43.92128+00	2026-01-09 09:29:43.92128+00
-2	AlertRecipients	ops@shipht.it,finance@shipht.it	Recipients for failure alert emails	\N	2026-01-09 09:29:43.92128+00	2026-01-09 09:29:43.92128+00
-3	AlertSubjectPrefix	[Invoicing Alert]	Prefix for alert email subjects	\N	2026-01-09 09:29:43.92128+00	2026-01-09 09:29:43.92128+00
-4	DefaultBillingFrequency	quarterly	Default billing frequency when not specified	\N	2026-01-09 09:29:43.92128+00	2026-01-09 09:29:43.92128+00
-5	DefaultIssueWindowDaysMonthly	10	Days before period start to issue invoice (monthly)	\N	2026-01-09 09:29:43.92128+00	2026-01-09 09:29:43.92128+00
-6	DefaultIssueWindowDaysQuarterly	45	Days before period start to issue invoice (quarterly)	\N	2026-01-09 09:29:43.92128+00	2026-01-09 09:29:43.92128+00
-7	DefaultIssueWindowDaysSemiAnnual	45	Days before period start to issue invoice (semi-annual)	\N	2026-01-09 09:29:43.92128+00	2026-01-09 09:29:43.92128+00
-8	DefaultIssueWindowDaysAnnual	45	Days before period start to issue invoice (annual)	\N	2026-01-09 09:29:43.92128+00	2026-01-09 09:29:43.92128+00
-9	RetryMaxAttempts	3	Maximum retry attempts for failed email sends	\N	2026-01-09 09:29:43.92128+00	2026-01-09 09:29:43.92128+00
-10	RetryBaseDelaySeconds	5	Base delay in seconds for exponential backoff retry	\N	2026-01-09 09:29:43.92128+00	2026-01-09 09:29:43.92128+00
+1	InvoiceSenderEmail	billing@shipht.it	Email address used to send customer invoices	\N	2026-01-10 20:16:59.362039+00	2026-01-10 20:16:59.362039+00
+2	AlertRecipients	ops@shipht.it,finance@shipht.it	Recipients for failure alert emails	\N	2026-01-10 20:16:59.362039+00	2026-01-10 20:16:59.362039+00
+3	AlertSubjectPrefix	[Invoicing Alert]	Prefix for alert email subjects	\N	2026-01-10 20:16:59.362039+00	2026-01-10 20:16:59.362039+00
+4	DefaultBillingFrequency	quarterly	Default billing frequency when not specified	\N	2026-01-10 20:16:59.362039+00	2026-01-10 20:16:59.362039+00
+5	DefaultIssueWindowDaysMonthly	10	Days before period start to issue invoice (monthly)	\N	2026-01-10 20:16:59.362039+00	2026-01-10 20:16:59.362039+00
+6	DefaultIssueWindowDaysQuarterly	45	Days before period start to issue invoice (quarterly)	\N	2026-01-10 20:16:59.362039+00	2026-01-10 20:16:59.362039+00
+7	DefaultIssueWindowDaysSemiAnnual	45	Days before period start to issue invoice (semi-annual)	\N	2026-01-10 20:16:59.362039+00	2026-01-10 20:16:59.362039+00
+8	DefaultIssueWindowDaysAnnual	45	Days before period start to issue invoice (annual)	\N	2026-01-10 20:16:59.362039+00	2026-01-10 20:16:59.362039+00
+9	RetryMaxAttempts	3	Maximum retry attempts for failed email sends	\N	2026-01-10 20:16:59.362039+00	2026-01-10 20:16:59.362039+00
+10	RetryBaseDelaySeconds	5	Base delay in seconds for exponential backoff retry	\N	2026-01-10 20:16:59.362039+00	2026-01-10 20:16:59.362039+00
 \.
 
 
@@ -48,5 +48,5 @@ SELECT pg_catalog.setval('lh_billing.configuration_configuration_id_seq', 10, tr
 -- PostgreSQL database dump complete
 --
 
-\unrestrict TVD9zt9Uf2Ih7LEyt7RIrLxx3ulyOXpLHlafmSxyUKhEljsAreLT2ybWbwsxK4N
+\unrestrict GgOjfefIcr1QrbmS7ET3UPH4tDPSPXO32gnh9xDPr1pK7Jf3Qh1RDDoFwfBDml6
 

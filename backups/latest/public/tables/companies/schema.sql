@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict UHTwuUSMWhr0VOiryRKWvVI9M469VVzxvD8IeAeQh5h4jQ3fLJOSNTHjmVOlCSh
+\restrict clHLYy7reXpdRgja9morqc8xU1a2aLhtw0OKA18rg7uTuAuqXoLqBgC0Fuc6BBk
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -130,5 +130,5 @@ ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict UHTwuUSMWhr0VOiryRKWvVI9M469VVzxvD8IeAeQh5h4jQ3fLJOSNTHjmVOlCSh
+\unrestrict clHLYy7reXpdRgja9morqc8xU1a2aLhtw0OKA18rg7uTuAuqXoLqBgC0Fuc6BBk
 

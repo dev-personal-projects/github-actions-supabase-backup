@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict JVLswvUN9fehMenL9zfztxmiKIIN4M0LOIwS1Rl2sK6FksTU4UWOtO2u9kgJ8xG
+\restrict BNGxdneLlW8fVMk4OeDWY3vhvbvplePLXEAayWMXwSXCHUpoEurVQp9MjDXUZjO
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -20,23 +20,23 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Data for Name: lh_configuration; Type: TABLE DATA; Schema: lh_system; Owner: -
+-- Data for Name: tax_rates; Type: TABLE DATA; Schema: lh_billing; Owner: -
 --
 
-COPY lh_system.lh_configuration (cfg_id, cfg_service, cfg_key, cfg_value, cmp_id, created_at, updated_at) FROM stdin;
+COPY lh_billing.tax_rates (tax_rate_id, country_code, tax_type, service_category, rate, is_inclusive, effective_date, end_date, created_at, updated_at) FROM stdin;
 \.
 
 
 --
--- Name: lh_configuration_cfg_id_seq; Type: SEQUENCE SET; Schema: lh_system; Owner: -
+-- Name: tax_rates_tax_rate_id_seq; Type: SEQUENCE SET; Schema: lh_billing; Owner: -
 --
 
-SELECT pg_catalog.setval('lh_system.lh_configuration_cfg_id_seq', 1, false);
+SELECT pg_catalog.setval('lh_billing.tax_rates_tax_rate_id_seq', 1, false);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict JVLswvUN9fehMenL9zfztxmiKIIN4M0LOIwS1Rl2sK6FksTU4UWOtO2u9kgJ8xG
+\unrestrict BNGxdneLlW8fVMk4OeDWY3vhvbvplePLXEAayWMXwSXCHUpoEurVQp9MjDXUZjO
 
