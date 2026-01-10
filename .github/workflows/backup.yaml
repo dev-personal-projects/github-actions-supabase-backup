@@ -61,12 +61,21 @@ jobs:
         if: env.BACKUP_ENABLED == 'true'
         id: detect-schemas
         run: |
-          source .github/scripts/detect.sh
+          set +e
+
+          # Source the script and capture any sourcing errors
+          SOURCE_ERROR=$(mktemp)
+          if ! source .github/scripts/detect.sh 2> "$SOURCE_ERROR"; then
+            echo "Error: Failed to source detect.sh" >&2
+            cat "$SOURCE_ERROR" >&2
+            rm -f "$SOURCE_ERROR"
+            exit 1
+          fi
+          rm -f "$SOURCE_ERROR"
 
           SCHEMA_OUTPUT=$(mktemp)
           SCHEMA_ERROR=$(mktemp)
 
-          set +e
           detect_schemas "$SUPABASE_DB_URL" > "$SCHEMA_OUTPUT" 2> "$SCHEMA_ERROR"
           EXIT_CODE=$?
           set -e
@@ -74,10 +83,18 @@ jobs:
           if [ $EXIT_CODE -ne 0 ]; then
             echo "Schema detection failed with exit code: $EXIT_CODE" >&2
             echo "Error output:" >&2
-            cat "$SCHEMA_ERROR" >&2
+            if [ -s "$SCHEMA_ERROR" ]; then
+              cat "$SCHEMA_ERROR" >&2
+            else
+              echo "(Error file is empty)" >&2
+            fi
             echo "" >&2
             echo "Standard output:" >&2
-            cat "$SCHEMA_OUTPUT" >&2
+            if [ -s "$SCHEMA_OUTPUT" ]; then
+              cat "$SCHEMA_OUTPUT" >&2
+            else
+              echo "(Output file is empty)" >&2
+            fi
             rm -f "$SCHEMA_OUTPUT" "$SCHEMA_ERROR"
             exit $EXIT_CODE
           fi

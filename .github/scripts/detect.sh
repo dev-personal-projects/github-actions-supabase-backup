@@ -1,7 +1,11 @@
 #!/bin/bash
 # Database detection functions
 
-set -euo pipefail
+# Don't use set -euo pipefail at the top level when sourced
+# It will cause the script to exit if any command fails, even during sourcing
+if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
+  set -euo pipefail
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
