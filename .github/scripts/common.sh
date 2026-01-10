@@ -52,3 +52,16 @@ force_ipv4_connection() {
   
   echo "$DB_URL"
 }
+
+# URL decode a string (handles common cases)
+url_decode() {
+  local encoded="$1"
+  # Replace %40 with @, %3A with :, %2F with /, %23 with #
+  encoded="${encoded//%40/@}"
+  encoded="${encoded//%3A/:}"
+  encoded="${encoded//%2F//}"
+  encoded="${encoded//%23/#}"
+  encoded="${encoded//%20/ }"
+  encoded="${encoded//%25/%}"
+  echo "$encoded"
+}

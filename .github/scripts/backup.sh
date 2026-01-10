@@ -30,10 +30,13 @@ backup_roles() {
   # Format: postgresql://user:pass@host:port/db?params
   if [[ "$DB_URL" =~ postgresql://([^:]+):([^@]+)@([^:/]+):([0-9]+)/([^?]*)(.*) ]]; then
     local PGUSER="${BASH_REMATCH[1]}"
-    local PGPASSWORD="${BASH_REMATCH[2]}"
+    local PGPASSWORD_RAW="${BASH_REMATCH[2]}"
     local PGHOST="${BASH_REMATCH[3]}"
     local PGPORT="${BASH_REMATCH[4]}"
     local PGDATABASE="${BASH_REMATCH[5]}"
+    
+    # URL decode the password (e.g., %40 -> @)
+    local PGPASSWORD=$(url_decode "$PGPASSWORD_RAW")
     
     # Extract SSL mode from params if present
     local SSL_MODE=""
