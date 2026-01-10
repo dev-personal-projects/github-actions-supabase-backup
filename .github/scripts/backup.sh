@@ -105,41 +105,47 @@ backup_table() {
 
   # Backup table structure (schema only)
   echo "Backing up structure for table: $SCHEMA.$TABLE"
-  local SCHEMA_ERROR=""
-  SCHEMA_ERROR=$(pg_dump "$DB_URL" \
+  local SCHEMA_ERROR_FILE=$(mktemp)
+  if ! pg_dump "$DB_URL" \
     --schema="$SCHEMA" \
     --table="$SCHEMA.$TABLE" \
     --schema-only \
     --no-owner \
     --no-privileges \
     --no-tablespaces \
-    > "$TABLE_DIR/schema.sql" 2>&1)
-  local SCHEMA_EXIT=$?
-  
-  if [ $SCHEMA_EXIT -ne 0 ]; then
+    > "$TABLE_DIR/schema.sql" 2> "$SCHEMA_ERROR_FILE"; then
+    
     echo "Error: Failed to backup schema for $SCHEMA.$TABLE" >&2
-    echo "$SCHEMA_ERROR" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    if [ -s "$SCHEMA_ERROR_FILE" ]; then
+      echo "pg_dump error output:" >&2
+      cat "$SCHEMA_ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    fi
+    rm -f "$SCHEMA_ERROR_FILE"
     exit 1
   fi
+  rm -f "$SCHEMA_ERROR_FILE"
 
   # Backup table data only
   echo "Backing up data for table: $SCHEMA.$TABLE"
-  local DATA_ERROR=""
-  DATA_ERROR=$(pg_dump "$DB_URL" \
+  local DATA_ERROR_FILE=$(mktemp)
+  if ! pg_dump "$DB_URL" \
     --schema="$SCHEMA" \
     --table="$SCHEMA.$TABLE" \
     --data-only \
     --no-owner \
     --no-privileges \
     --no-tablespaces \
-    > "$TABLE_DIR/data.sql" 2>&1)
-  local DATA_EXIT=$?
-  
-  if [ $DATA_EXIT -ne 0 ]; then
+    > "$TABLE_DIR/data.sql" 2> "$DATA_ERROR_FILE"; then
+    
     echo "Error: Failed to backup data for $SCHEMA.$TABLE" >&2
-    echo "$DATA_ERROR" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    if [ -s "$DATA_ERROR_FILE" ]; then
+      echo "pg_dump error output:" >&2
+      cat "$DATA_ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    fi
+    rm -f "$DATA_ERROR_FILE"
     exit 1
   fi
+  rm -f "$DATA_ERROR_FILE"
 
   # Verify files were created
   if [ ! -f "$TABLE_DIR/schema.sql" ] || [ ! -f "$TABLE_DIR/data.sql" ]; then
