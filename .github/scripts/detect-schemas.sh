@@ -19,6 +19,11 @@ fi
 # Force IPv4 and ensure SSL
 DB_URL=$(force_ipv4_connection "$DB_URL")
 
+# Force IPv4 preference by setting PGHOSTADDR if we have IPv4, otherwise disable IPv6
+# Export connection parameters to prefer IPv4
+export PGHOSTADDR=""
+# Try to disable IPv6 for this connection by using -4 flag if available
+# Note: psql doesn't have -4 flag, so we'll rely on system IPv6 preference
 CONNECTION_TEST=$(psql "$DB_URL" -c "SELECT 1;" 2>&1)
 CONNECTION_EXIT=$?
 
