@@ -1,6 +1,6 @@
 # Supabase Database Backup with GitHub Actions
 
-This repository provides a seamless way to automate backups of your Supabase database using GitHub Actions. It supports **multiple repositories in an organization sharing a single Supabase database**, where any PR, commit, or scheduled event in any repository can trigger a backup of the shared database to a dedicated backup repository.
+This repository provides a seamless way to automate backups of **any Supabase database** using GitHub Actions. Simply provide your Supabase connection string, and the system automatically detects and backs up all your schemas and tables. It supports **multiple repositories in an organization sharing a single Supabase database**, where any PR, commit, or scheduled event in any repository can trigger a backup of the shared database.
 
 ---
 
@@ -10,8 +10,10 @@ This repository provides a seamless way to automate backups of your Supabase dat
 - **Flexible Triggers:** Backups can be triggered by commits, PRs, scheduled events, or manual dispatch from any repository
 - **Concurrency Control:** Prevents duplicate backups when multiple repos trigger simultaneously
 - **Automatic Daily Backups:** Scheduled backups run every day at midnight (configure in one repo only)
-- **Schema-Specific Backups:** Creates modular backup files for roles, public schema, and custom schemas
+- **Automatic Schema Detection:** Works with any Supabase database - automatically detects all schemas and tables
+- **Per-Table Backups:** Each table is backed up individually for selective restoration
 - **Smart Schema Filtering:** Automatically excludes Supabase system schemas (auth, storage, realtime, etc.)
+- **Universal Compatibility:** Works with any Supabase account - just provide your connection string
 - **Flexible Workflow Control:** Enable or disable backups with a simple environment variable
 - **Centralized Storage:** All backups stored in a dedicated backup repository
 - **Easy Database Restoration:** Clear steps to restore your database from backups
@@ -52,9 +54,12 @@ This system is designed for organizations where **multiple repositories share a 
 Go to your repository settings and navigate to **Actions > Secrets and variables > Secrets**. Add:
 
 - **Secrets:**
-  - `SUPABASE_DB_URL`: Your shared Supabase PostgreSQL connection string.  
+  - `SUPABASE_DB_URL`: Your Supabase PostgreSQL connection string.  
     Format: `postgresql://<USER>:<PASSWORD>@<HOST>:5432/postgres`
+    - Get this from your Supabase project settings: **Settings > Database > Connection string**
+    - Use the "Connection pooling" or "Direct connection" string
     - ⚠️ **Note**: All repos that share the database use the **same** `SUPABASE_DB_URL`
+    - ✅ **Works with any Supabase account** - just provide your connection string
 
 - **Variables:**
   - `BACKUP_ENABLED`: Set to `true` to enable backups or `false` to disable them.
@@ -70,12 +75,19 @@ Go to your repository settings and navigate to **Actions > Secrets and variables
 
 #### Workflow Triggers
 
-The GitHub Actions workflow can be triggered from **any repository** that shares the database:
+The GitHub Actions workflow can be triggered from **any repository** that shares the database using **any of these methods**:
 
-- **Pushes** to `main` or `dev` branches (from any repo)
-- **Pull requests** merged to `main` or `dev` (from any repo)
-- **Manual dispatch** via the GitHub interface (from any repo)
-- **Scheduled** backups (configure in **ONE repo only** to avoid duplicates)
+- ✅ **Scheduled backups** (daily/weekly) - from one designated repo only
+  - Configure in any repo, but recommended to set in only one to avoid duplicates
+  
+- ✅ **Manual dispatch** (on-demand) - from any repo
+  - Trigger from GitHub Actions UI in any repository with the workflow
+  
+- ✅ **Push to main or dev branch** - from any repo
+  - Any push to `main` or `dev` branch in any repository triggers backup
+  - Both `main` and `dev` branches are supported
+
+**Important:** ANY of these triggers from ANY repo will run the backup workflow. The system uses concurrency control to ensure only one backup runs at a time, even if multiple repos trigger simultaneously.
 
 #### Concurrency Control
 
@@ -85,18 +97,20 @@ The workflow uses GitHub Actions concurrency groups to ensure only **one backup 
 
 The workflow performs the following steps:
 
-1. Checks if backups are enabled using the `BACKUP_ENABLED` variable.
-2. Detects available schemas (public + custom schemas, excluding Supabase system schemas).
-3. Runs the Supabase CLI to create backup files:
+1. **Checks if backups are enabled** using the `BACKUP_ENABLED` variable.
+2. **Connects to your Supabase database** using the provided `SUPABASE_DB_URL` connection string.
+3. **Automatically detects all schemas** (public + any custom schemas, excluding Supabase system schemas).
+4. **Automatically detects all tables** within each detected schema.
+5. **Creates per-table backup files**:
    - `roles.sql`: Contains all database roles and permissions.
-   - `public/schema.sql`: Contains public schema structure.
-   - `public/data.sql`: Contains public schema table data.
-   - `{custom-schema}/schema.sql`: For each custom schema.
-   - `{custom-schema}/data.sql`: For each custom schema.
-4. Stores backups in the dedicated backup repository:
+   - `{schema}/tables/{table-name}/schema.sql`: Table structure for each table.
+   - `{schema}/tables/{table-name}/data.sql`: Table data for each table.
+6. **Stores backups** in this repository:
    - Latest backup in `backups/latest/`
-   - Historical backups in `backups/archive/{timestamp}-{source-repo}/`
-5. Commits the backups to the backup repository.
+   - Historical backups in `backups/archive/{timestamp}--{source-repo}--{event}--{sha}/`
+7. **Commits the backups** to this repository.
+
+**Key Point:** The system automatically adapts to your database structure - no need to configure which schemas or tables to backup!
 
 #### Backup Storage Structure
 
@@ -259,13 +273,10 @@ name: Backup Shared Database
 
 on:
   push:
-    branches: [main, dev]
-  pull_request:
-    branches: [main, dev]
-    types: [closed]
-  workflow_dispatch:
-  # schedule: Only add this in ONE repo!
-  #   - cron: "0 0 * * *"
+    branches: [main, dev]  # Supports both main and dev branches
+  workflow_dispatch:        # Manual trigger from any repo
+  # schedule: Only add this in ONE repo to avoid duplicates!
+  #   - cron: "0 0 * * *"  # Daily at midnight
 
 jobs:
   backup:
@@ -284,6 +295,12 @@ jobs:
       trigger_event: ${{ github.event_name }}
 ```
 
+**Note:** 
+- Any push to `main` or `dev` branch in this repo will trigger a backup
+- Manual dispatch can be triggered from any repo with this workflow
+- Scheduled backups should only be configured in ONE repo to avoid duplicates
+- All triggers use concurrency control to prevent simultaneous backups
+
 **Configuration Notes:**
 - **Organization**: Automatically detected using `${{ github.repository_owner }}` - no hardcoding needed
 - **Backup Storage**: All backups stored in `db-backup-actions` repository's `backups/` directory
@@ -292,12 +309,28 @@ jobs:
 
 ## Requirements
 
-- A Supabase project with a PostgreSQL database (shared across multiple repositories)
+- **Any Supabase project** with a PostgreSQL database
+  - Works with any Supabase account (free, pro, enterprise)
+  - Works with any database structure (any number of schemas/tables)
+  - Just provide your Supabase connection string
 - Supabase CLI installed for manual restoration
-- A GitHub organization with multiple repositories sharing the same database
+- A GitHub organization with multiple repositories sharing the same database (optional - can also work with single repo)
 - This repository (`db-backup-actions`) to store backups
 - GitHub Actions enabled in all repositories
 - Proper permissions for workflows to commit to this repository
+
+### Getting Your Supabase Connection String
+
+1. Go to your Supabase project dashboard
+2. Navigate to **Settings > Database**
+3. Find the **Connection string** section
+4. Copy either:
+   - **Connection pooling** (recommended for production)
+   - **Direct connection** (for backups, either works)
+5. Format: `postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres`
+   - Or: `postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres`
+
+The system will automatically detect and backup all your schemas and tables - no additional configuration needed!
 
 ## Important Notes
 
@@ -328,11 +361,33 @@ jobs:
 
 ### Schema Backup Strategy
 
-The system automatically:
-- ✅ Backs up the `public` schema (always included)
-- ✅ Backs up any custom schemas you've created
-- ❌ Excludes Supabase system schemas (auth, storage, realtime, vault, etc.)
-- ❌ Excludes PostgreSQL system schemas (pg_catalog, information_schema, etc.)
+The system **automatically works with any Supabase database**:
+
+- ✅ **Automatic Detection**: Discovers all user schemas and tables dynamically
+- ✅ **Public Schema**: Always backed up (primary application schema)
+  - All tables in the public schema are backed up individually
+  - Number of tables varies by database (automatically detected)
+- ✅ **Custom Schemas**: Automatically detected and backed up
+  - Any custom schemas you've created (e.g., `analytics`, `billing`, `custom_app`, etc.)
+  - All tables within custom schemas are backed up individually
+  - System adapts to your database structure automatically
+- ❌ **System Schemas Excluded**: Automatically excludes Supabase system schemas
+  - `auth`, `storage`, `realtime`, `vault`, `extensions`, `graphql`, `graphql_public`, `pgbouncer`
+  - PostgreSQL system schemas: `pg_catalog`, `information_schema`, `pg_temp_*`, `pg_toast_temp_*`
+
+**How It Works:**
+1. You provide your Supabase connection string
+2. System queries your database to discover all schemas and tables
+3. Automatically filters out system schemas
+4. Creates per-table backups for all user schemas and tables
+5. No configuration needed - works with any Supabase database structure
+
+**Example:** If your database has:
+- `public` schema with 20 tables
+- `analytics` schema with 5 tables  
+- `billing` schema with 8 tables
+
+The system will automatically detect and backup all 33 tables across 3 schemas.
 
 ## Documentation
 

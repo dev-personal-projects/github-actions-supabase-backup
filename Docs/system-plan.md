@@ -2,7 +2,7 @@
 
 ## 📋 Executive Summary
 
-This document outlines the architecture, requirements, and implementation plan for an enhanced Supabase database backup system using GitHub Actions. The system supports **multiple repositories in an organization sharing a single Supabase database**, where any PR, commit, or scheduled event in any repository can trigger a backup of the shared database to a dedicated backup repository.
+This document outlines the architecture, requirements, and implementation plan for an enhanced Supabase database backup system using GitHub Actions. The system is **universally compatible** - it works with **any Supabase database account** by simply providing your connection string. It automatically detects all schemas and tables, requiring zero configuration. The system supports **multiple repositories in an organization sharing a single Supabase database**, where any PR, commit, or scheduled event in any repository can trigger a backup of the shared database.
 
 ---
 
@@ -306,6 +306,24 @@ on:
 
 ## 🗂️ Schema Backup Strategy
 
+### Universal Compatibility
+
+**This system works with ANY Supabase database account.** Simply provide your Supabase connection string, and the system will automatically:
+
+- ✅ **Detect all user schemas** (public + any custom schemas)
+- ✅ **Detect all tables** within each schema
+- ✅ **Exclude Supabase system schemas** automatically
+- ✅ **Backup everything** that should be backed up
+
+**No configuration needed** - the system adapts to your database structure automatically.
+
+### How It Works
+
+1. **Connection**: You provide your Supabase PostgreSQL connection string via `SUPABASE_DB_URL` secret
+2. **Detection**: System queries the database to discover all schemas and tables
+3. **Filtering**: Automatically excludes Supabase system schemas
+4. **Backup**: Creates per-table backups for all user schemas and tables
+
 ### Supabase System Schemas (Exclude from Backup)
 - `auth` - Authentication system
 - `extensions` - PostgreSQL extensions
@@ -321,10 +339,28 @@ on:
 - `information_schema` - PostgreSQL information schema
 
 ### User Schemas (Include in Backup)
-- `public` - **Always backup** (primary application schema)
-- Any custom schemas (e.g., `lh_billing`, `custom_app`, etc.)
 
-### Schema Detection Strategy
+The system automatically detects and backs up:
+
+- **`public` schema** - Always backed up (primary application schema)
+  - All tables in the public schema are backed up individually
+  - Number of tables varies by database (automatically detected)
+
+- **Custom schemas** - Automatically detected and backed up
+  - Any custom schemas you've created (e.g., `lh_billing`, `custom_app`, `analytics`, etc.)
+  - All tables within custom schemas are backed up individually
+  - System adapts to your database structure automatically
+
+**Example:** If your database has:
+- `public` schema with 20 tables
+- `analytics` schema with 5 tables
+- `billing` schema with 8 tables
+
+The system will automatically detect and backup all 33 tables across 3 schemas.
+
+### Automatic Schema Detection Strategy
+
+The system uses dynamic detection to work with any Supabase database:
 
 1. **Query available schemas:**
    ```sql
@@ -339,10 +375,26 @@ on:
    AND schema_name NOT LIKE 'pg_toast_temp%';
    ```
 
-2. **Backup each schema separately:**
-   - Create schema-specific folders
-   - Backup schema structure
-   - Backup schema data
+2. **Query tables for each detected schema:**
+   ```sql
+   SELECT table_name 
+   FROM information_schema.tables 
+   WHERE table_schema = '{schema_name}'
+   AND table_type = 'BASE TABLE'
+   ORDER BY table_name;
+   ```
+
+3. **Backup each table individually:**
+   - Create schema-specific folders: `{schema}/tables/`
+   - Create table-specific folders: `{schema}/tables/{table_name}/`
+   - Each table gets its own `schema.sql` (structure) and `data.sql` (data)
+   - Works with any number of schemas and tables
+
+**Key Features:**
+- ✅ **Zero configuration** - Works with any Supabase database structure
+- ✅ **Automatic detection** - Discovers all schemas and tables dynamically
+- ✅ **Scalable** - Handles databases with any number of schemas/tables
+- ✅ **Future-proof** - Automatically includes new schemas/tables when added
 
 ---
 
@@ -352,11 +404,27 @@ on:
 
 Since multiple repos can trigger backups of the same database, we use concurrency control to handle concurrent triggers efficiently.
 
-**Trigger Configuration:**
+**Trigger Configuration - ANY of these from ANY repo can trigger backup:**
+
 - ✅ **Scheduled backups** (daily/weekly) - from one designated repo only
+  - Can be configured in any repo, but recommended to set in only one to avoid duplicates
+  - When triggered, creates a backup of the shared database
+  
 - ✅ **Manual dispatch** (on-demand) - from any repo
-- ✅ **Push to main branch** - from any repo (with concurrency control)
+  - Can be triggered from any repository that has the workflow configured
+  - Useful for on-demand backups before deployments or changes
+  
+- ✅ **Push to main or dev branch** - from any repo (with concurrency control)
+  - Any push to `main` or `dev` branch in any repository triggers backup
+  - Works for both `main` and `dev` branches
+  - Concurrency control ensures only one backup runs at a time
+
 - ❌ **No PR backups** (too frequent, can cause noise)
+
+**Key Points:**
+- **Any repository** with the workflow can trigger backups using any of the above methods
+- **Any branch** (`main` or `dev`) push can trigger a backup
+- **Concurrency control** ensures only one backup runs at a time, even if multiple repos trigger simultaneously
 
 **Concurrency Handling:**
 - Use GitHub Actions `concurrency` groups to prevent simultaneous backups
@@ -376,6 +444,7 @@ concurrency:
 - More predictable backup schedule
 - Handles concurrent triggers gracefully
 - Efficient resource usage
+- Flexible - any repo can trigger from any supported method
 
 ---
 
