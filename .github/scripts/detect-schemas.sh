@@ -14,6 +14,15 @@ fi
 
 # Query to detect user schemas (excluding system schemas)
 # First test connection with better error reporting
+# Supabase requires SSL connections - add ?sslmode=require if not present
+if [[ "$DB_URL" != *"sslmode"* ]]; then
+  if [[ "$DB_URL" == *"?"* ]]; then
+    DB_URL="${DB_URL}&sslmode=require"
+  else
+    DB_URL="${DB_URL}?sslmode=require"
+  fi
+fi
+
 CONNECTION_TEST=$(psql "$DB_URL" -c "SELECT 1;" 2>&1)
 CONNECTION_EXIT=$?
 
@@ -35,6 +44,7 @@ if [ $CONNECTION_EXIT -ne 0 ]; then
   exit 1
 fi
 
+# Use the same DB_URL (with SSL) for the schema query
 SCHEMAS=$(psql "$DB_URL" -t -A -c "
   SELECT schema_name 
   FROM information_schema.schemata 

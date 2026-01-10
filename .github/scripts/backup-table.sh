@@ -16,6 +16,15 @@ if [ -z "$DB_URL" ] || [ -z "$SCHEMA" ] || [ -z "$TABLE" ] || [ -z "$OUTPUT_DIR"
   exit 1
 fi
 
+# Supabase requires SSL connections - add ?sslmode=require if not present
+if [[ "$DB_URL" != *"sslmode"* ]]; then
+  if [[ "$DB_URL" == *"?"* ]]; then
+    DB_URL="${DB_URL}&sslmode=require"
+  else
+    DB_URL="${DB_URL}?sslmode=require"
+  fi
+fi
+
 # Create table directory
 TABLE_DIR="$OUTPUT_DIR/$SCHEMA/tables/$TABLE"
 mkdir -p "$TABLE_DIR"
