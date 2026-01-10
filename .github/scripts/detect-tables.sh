@@ -21,10 +21,14 @@ TABLES=$(psql "$DB_URL" -t -A -c "
   WHERE table_schema = '$SCHEMA'
   AND table_type = 'BASE TABLE'
   ORDER BY table_name;
-" 2>/dev/null)
+" 2>&1)
 
-if [ $? -ne 0 ]; then
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
   echo "Error: Failed to query database for tables in schema '$SCHEMA'" >&2
+  echo "Exit code: $EXIT_CODE" >&2
+  # Show error but mask sensitive connection string details
+  echo "$TABLES" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
   exit 1
 fi
 

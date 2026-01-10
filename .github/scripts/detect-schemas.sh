@@ -24,10 +24,14 @@ SCHEMAS=$(psql "$DB_URL" -t -A -c "
   AND schema_name NOT LIKE 'pg_temp%'
   AND schema_name NOT LIKE 'pg_toast_temp%'
   ORDER BY schema_name;
-" 2>/dev/null)
+" 2>&1)
 
-if [ $? -ne 0 ]; then
+EXIT_CODE=$?
+if [ $EXIT_CODE -ne 0 ]; then
   echo "Error: Failed to query database for schemas" >&2
+  echo "Exit code: $EXIT_CODE" >&2
+  # Show error but mask sensitive connection string details
+  echo "$SCHEMAS" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
   exit 1
 fi
 
