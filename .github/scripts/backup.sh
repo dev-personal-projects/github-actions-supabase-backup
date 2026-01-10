@@ -72,30 +72,58 @@ backup_table() {
 
   # Backup schema
   echo "Backing up structure for table: $SCHEMA.$TABLE"
-  if ! $PG_DUMP "$DB_URL" --schema="$SCHEMA" --table="$TABLE" \
+  # Use schema-qualified table name format: schema.table (pg_dump accepts this format)
+  if ! $PG_DUMP "$DB_URL" --table="$SCHEMA.$TABLE" \
     --schema-only --no-owner --no-privileges --no-tablespaces \
     > "$TABLE_DIR/schema.sql" 2> "$ERROR_FILE"; then
     echo "Error: Failed to backup schema for $SCHEMA.$TABLE" >&2
-    [ -s "$ERROR_FILE" ] && cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    if [ -s "$ERROR_FILE" ]; then
+      echo "pg_dump error:" >&2
+      cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+      
+      # Check if it's a "no matching tables" error - might be a system table or view
+      if grep -qi "no matching tables" "$ERROR_FILE"; then
+        echo "Note: This might be a system table, view, or materialized view that cannot be dumped" >&2
+        echo "Skipping this table and continuing..." >&2
+        rm -f "$ERROR_FILE" "$TABLE_DIR/schema.sql" 2>/dev/null
+        return 1
+      fi
+    else
+      echo "No error details available" >&2
+    fi
     rm -f "$ERROR_FILE"
-    exit 1
+    return 1
   fi
 
   # Backup data
   echo "Backing up data for table: $SCHEMA.$TABLE"
-  if ! $PG_DUMP "$DB_URL" --schema="$SCHEMA" --table="$TABLE" \
+  # Use schema-qualified table name format: schema.table (pg_dump accepts this format)
+  if ! $PG_DUMP "$DB_URL" --table="$SCHEMA.$TABLE" \
     --data-only --no-owner --no-privileges --no-tablespaces \
     > "$TABLE_DIR/data.sql" 2> "$ERROR_FILE"; then
     echo "Error: Failed to backup data for $SCHEMA.$TABLE" >&2
-    [ -s "$ERROR_FILE" ] && cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    if [ -s "$ERROR_FILE" ]; then
+      echo "pg_dump error:" >&2
+      cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+      
+      # Check if it's a "no matching tables" error
+      if grep -qi "no matching tables" "$ERROR_FILE"; then
+        echo "Note: This might be a system table, view, or materialized view that cannot be dumped" >&2
+        echo "Skipping this table and continuing..." >&2
+        rm -f "$ERROR_FILE" "$TABLE_DIR/data.sql" "$TABLE_DIR/schema.sql" 2>/dev/null
+        return 1
+      fi
+    else
+      echo "No error details available" >&2
+    fi
     rm -f "$ERROR_FILE"
-    exit 1
+    return 1
   fi
 
   rm -f "$ERROR_FILE"
   [ ! -f "$TABLE_DIR/schema.sql" ] || [ ! -f "$TABLE_DIR/data.sql" ] && {
     echo "Error: Backup files not created for $SCHEMA.$TABLE" >&2
-    exit 1
+    return 1
   }
 
   echo "Successfully backed up table: $SCHEMA.$TABLE"
@@ -119,13 +147,30 @@ backup_schema() {
   [ -z "$TABLES" ] && { echo "No tables found in schema: $SCHEMA"; return 0; }
 
   local TABLE_COUNT=0
+  local FAILED_COUNT=0
   while IFS= read -r table; do
-    [ -n "$table" ] && backup_table "$DB_URL" "$SCHEMA" "$table" "$OUTPUT_DIR" && ((TABLE_COUNT++)) || {
-      echo "Warning: Failed to backup table $SCHEMA.$table" >&2
-    }
+    if [ -n "$table" ]; then
+      # Temporarily disable exit on error to allow continuing with other tables
+      set +e
+      if backup_table "$DB_URL" "$SCHEMA" "$table" "$OUTPUT_DIR"; then
+        ((TABLE_COUNT++))
+      else
+        ((FAILED_COUNT++))
+        echo "Warning: Failed to backup table $SCHEMA.$table, continuing with other tables..." >&2
+      fi
+      set -e
+    fi
   done <<< "$TABLES"
 
-  echo "Successfully backed up $TABLE_COUNT table(s) in schema: $SCHEMA"
+  if [ $FAILED_COUNT -gt 0 ]; then
+    echo "Warning: Failed to backup $FAILED_COUNT table(s) in schema: $SCHEMA" >&2
+  fi
+  
+  if [ $TABLE_COUNT -gt 0 ]; then
+    echo "Successfully backed up $TABLE_COUNT table(s) in schema: $SCHEMA"
+  else
+    echo "Warning: No tables were successfully backed up in schema: $SCHEMA" >&2
+  fi
 }
 
 # Main entry point for command-line usage

@@ -62,7 +62,8 @@ detect_schemas() {
     WHERE schema_name NOT IN (
       'pg_catalog', 'information_schema', 'pg_toast',
       'auth', 'extensions', 'graphql', 'graphql_public',
-      'realtime', 'storage', 'vault', 'pgbouncer'
+      'realtime', 'storage', 'vault', 'pgbouncer',
+      'cron', 'pg_cron', 'pgagent'
     )
     AND schema_name NOT LIKE 'pg_temp%'
     AND schema_name NOT LIKE 'pg_toast_temp%'
