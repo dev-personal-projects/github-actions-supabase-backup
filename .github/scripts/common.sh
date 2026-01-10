@@ -6,8 +6,9 @@
 force_ipv4_connection() {
   local DB_URL="$1"
   
-  # Extract hostname from connection string (format: postgresql://user:pass@host:port/db?params)
-  if [[ "$DB_URL" =~ postgresql://([^:]+):([^@]+)@([^:/]+):([0-9]+)/([^?]+)(.*) ]]; then
+  # Extract components from connection string (format: postgresql://user:pass@host:port/db?params)
+  # Handle both with and without query parameters
+  if [[ "$DB_URL" =~ postgresql://([^:]+):([^@]+)@([^:/]+):([0-9]+)/([^?]*)(.*) ]]; then
     local USER="${BASH_REMATCH[1]}"
     local PASS="${BASH_REMATCH[2]}"
     local HOST="${BASH_REMATCH[3]}"
