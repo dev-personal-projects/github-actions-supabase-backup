@@ -106,9 +106,10 @@ backup_table() {
   # Backup table structure (schema only)
   echo "Backing up structure for table: $SCHEMA.$TABLE"
   local SCHEMA_ERROR_FILE=$(mktemp)
+  # Use --table with just table name since --schema already specifies the schema
   if ! pg_dump "$DB_URL" \
     --schema="$SCHEMA" \
-    --table="$SCHEMA.$TABLE" \
+    --table="$TABLE" \
     --schema-only \
     --no-owner \
     --no-privileges \
@@ -128,9 +129,10 @@ backup_table() {
   # Backup table data only
   echo "Backing up data for table: $SCHEMA.$TABLE"
   local DATA_ERROR_FILE=$(mktemp)
+  # Use --table with just table name since --schema already specifies the schema
   if ! pg_dump "$DB_URL" \
     --schema="$SCHEMA" \
-    --table="$SCHEMA.$TABLE" \
+    --table="$TABLE" \
     --data-only \
     --no-owner \
     --no-privileges \
