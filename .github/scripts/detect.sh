@@ -17,8 +17,8 @@ detect_schemas() {
     exit 1
   fi
 
-  # Force IPv4 and ensure SSL
-  DB_URL=$(force_ipv4_connection "$DB_URL")
+  # Force IPv4 and ensure SSL (redirect stderr to avoid capturing resolution messages)
+  DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
 
   # Test connection first
   local CONNECTION_TEST=$(psql "$DB_URL" -c "SELECT 1;" 2>&1)
@@ -80,8 +80,8 @@ detect_tables() {
     exit 1
   fi
 
-  # Force IPv4 and ensure SSL
-  DB_URL=$(force_ipv4_connection "$DB_URL")
+  # Force IPv4 and ensure SSL (redirect stderr to avoid capturing resolution messages)
+  DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
 
   # Query to detect tables in the schema
   local TABLES=$(psql "$DB_URL" -t -A -c "

@@ -19,8 +19,8 @@ backup_roles() {
     exit 1
   fi
 
-  # Force IPv4 and ensure SSL
-  DB_URL=$(force_ipv4_connection "$DB_URL")
+  # Force IPv4 and ensure SSL (redirect stderr to avoid capturing resolution messages)
+  DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
 
   # Create output directory if it doesn't exist
   local OUTPUT_DIR=$(dirname "$OUTPUT_FILE")
@@ -96,8 +96,8 @@ backup_table() {
     exit 1
   fi
 
-  # Force IPv4 and ensure SSL
-  DB_URL=$(force_ipv4_connection "$DB_URL")
+  # Force IPv4 and ensure SSL (redirect stderr to avoid capturing resolution messages)
+  DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
 
   # Create table directory
   local TABLE_DIR="$OUTPUT_DIR/$SCHEMA/tables/$TABLE"
@@ -105,29 +105,39 @@ backup_table() {
 
   # Backup table structure (schema only)
   echo "Backing up structure for table: $SCHEMA.$TABLE"
-  if ! pg_dump "$DB_URL" \
+  local SCHEMA_ERROR=""
+  SCHEMA_ERROR=$(pg_dump "$DB_URL" \
     --schema="$SCHEMA" \
     --table="$SCHEMA.$TABLE" \
     --schema-only \
     --no-owner \
     --no-privileges \
     --no-tablespaces \
-    > "$TABLE_DIR/schema.sql" 2>&1; then
+    > "$TABLE_DIR/schema.sql" 2>&1)
+  local SCHEMA_EXIT=$?
+  
+  if [ $SCHEMA_EXIT -ne 0 ]; then
     echo "Error: Failed to backup schema for $SCHEMA.$TABLE" >&2
+    echo "$SCHEMA_ERROR" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
     exit 1
   fi
 
   # Backup table data only
   echo "Backing up data for table: $SCHEMA.$TABLE"
-  if ! pg_dump "$DB_URL" \
+  local DATA_ERROR=""
+  DATA_ERROR=$(pg_dump "$DB_URL" \
     --schema="$SCHEMA" \
     --table="$SCHEMA.$TABLE" \
     --data-only \
     --no-owner \
     --no-privileges \
     --no-tablespaces \
-    > "$TABLE_DIR/data.sql" 2>&1; then
+    > "$TABLE_DIR/data.sql" 2>&1)
+  local DATA_EXIT=$?
+  
+  if [ $DATA_EXIT -ne 0 ]; then
     echo "Error: Failed to backup data for $SCHEMA.$TABLE" >&2
+    echo "$DATA_ERROR" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
     exit 1
   fi
 
