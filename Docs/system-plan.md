@@ -106,18 +106,25 @@ db-backup-actions/
 │   ├── latest/                      # Latest backup (always overwritten)
 │   │   ├── roles.sql               # Database roles
 │   │   ├── public/                 # Public schema
-│   │   │   ├── schema.sql
-│   │   │   └── data.sql
+│   │   │   └── tables/             # Individual table backups
+│   │   │       ├── users/
+│   │   │       │   ├── schema.sql
+│   │   │       │   └── data.sql
+│   │   │       └── orders/
+│   │   │           ├── schema.sql
+│   │   │           └── data.sql
 │   │   └── {custom-schema}/        # Custom schemas
-│   │       ├── schema.sql
-│   │       └── data.sql
+│   │       └── tables/
+│   │           └── {table-name}/
+│   │               ├── schema.sql
+│   │               └── data.sql
 │   └── archive/                     # Historical backups with prefixes
 │       ├── 2024-01-15T00-00-00Z--repo1--push--abc1234/
 │       │   ├── roles.sql
 │       │   ├── public/
+│       │   │   └── tables/
 │       │   └── {custom-schema}/
-│       ├── 2024-01-15T12-30-00Z--repo2--pr--def5678/
-│       └── 2024-01-16T00-00-00Z--repo1--schedule--ghi9012/
+│       └── 2024-01-15T12-30-00Z--repo2--pr--def5678/
 ├── Docs/
 │   └── system-plan.md
 └── README.md
@@ -156,25 +163,28 @@ Historical backups use a **prefix-based naming system** to distinguish different
 - Always stored in `backups/latest/`
 - Overwritten on each new backup
 - Provides quick access to most recent backup
-- Same structure as archive backups
+- Same per-table structure as archive backups
 
 **Archive Backups:**
 - Stored in `backups/archive/`
 - Never overwritten (historical record)
 - Uses prefix naming convention
-- Maintains full backup history
+- Maintains full backup history with per-table organization
 
 **Pros:**
 - ✅ **Single repository**: Everything in one place
 - ✅ **No cross-repo access needed**: Simpler setup
 - ✅ **Version controlled**: Git history tracks all backups
-- ✅ **Easy to browse**: Clear folder structure
+- ✅ **Easy to browse**: Clear folder structure with per-table organization
 - ✅ **Centralized management**: All backups in one location
 - ✅ **Clear traceability**: Prefix shows source and trigger
+- ✅ **Selective restoration**: Restore individual tables as needed
+- ✅ **Better organization**: Each table in its own folder
 
 **Cons:**
 - ⚠️ **Repository size**: Will grow over time (consider cleanup policies)
 - ⚠️ **Git history**: Large files in git history (consider Git LFS if needed)
+- ⚠️ **More files**: Per-table structure creates more files (but better organization)
 
 ### Backup Retention Policy (Recommended)
 
@@ -338,52 +348,20 @@ on:
 
 ## ⚙️ Workflow Trigger Strategy
 
-### Current Triggers
-- Push to `main`/`dev` branches
-- Pull requests to `main`/`dev` branches
-- Manual dispatch
-- Daily schedule (midnight)
+### Recommended Trigger Strategy (Shared Database)
 
-### Proposed Trigger Strategy (Shared Database)
+Since multiple repos can trigger backups of the same database, we use concurrency control to handle concurrent triggers efficiently.
 
-Since multiple repos can trigger backups of the same database, we need to handle concurrent triggers intelligently.
-
-#### Option A: Conservative with Concurrency Control (Recommended)
-- ✅ **Scheduled backups only** (daily/weekly) - from one designated repo
+**Trigger Configuration:**
+- ✅ **Scheduled backups** (daily/weekly) - from one designated repo only
 - ✅ **Manual dispatch** (on-demand) - from any repo
 - ✅ **Push to main branch** - from any repo (with concurrency control)
 - ❌ **No PR backups** (too frequent, can cause noise)
 
 **Concurrency Handling:**
 - Use GitHub Actions `concurrency` groups to prevent simultaneous backups
-- Only one backup runs at a time, others are queued or cancelled
+- Only one backup runs at a time, others are queued
 - Prevents duplicate backups when multiple repos trigger simultaneously
-
-**Rationale:**
-- Prevents backup spam from multiple repos
-- Reduces GitHub Actions usage
-- More predictable backup schedule
-- Handles concurrent triggers gracefully
-
-#### Option B: Balanced with Concurrency Control
-- ✅ **Scheduled backups** (daily) - from one repo
-- ✅ **Manual dispatch** - from any repo
-- ✅ **Push to main branch** - from any repo (with concurrency control)
-- ✅ **PR merge to main** - from any repo (with concurrency control)
-- ❌ **No PR open/update backups**
-
-**Rationale:**
-- Backs up on production deployments from any repo
-- Avoids PR noise
-- Still maintains scheduled backups
-- Handles concurrent triggers
-
-#### Option C: Aggressive (Not Recommended)
-- ✅ **All triggers from all repos** (commits, PRs, scheduled, manual)
-- ⚠️ **Use with extreme caution** - can generate excessive backups
-- Requires strict concurrency control
-
-### Recommendation: **Option A - Conservative with Concurrency Control**
 
 **Implementation:**
 ```yaml
@@ -391,6 +369,13 @@ concurrency:
   group: shared-db-backup
   cancel-in-progress: false  # Queue instead of cancel
 ```
+
+**Benefits:**
+- Prevents backup spam from multiple repos
+- Reduces GitHub Actions usage
+- More predictable backup schedule
+- Handles concurrent triggers gracefully
+- Efficient resource usage
 
 ---
 
@@ -400,26 +385,46 @@ concurrency:
 
 All backups are stored in this repository (`db-backup-actions`) in the `backups/` directory.
 
-### Folder Structure
+### Folder Structure (Per-Table Organization)
+
+Each table is backed up individually for better organization and easier restoration:
 
 ```
 backups/
 ├── latest/                          # Latest backup (always overwritten)
 │   ├── roles.sql                    # All roles (single file)
 │   ├── public/                      # Public schema
-│   │   ├── schema.sql              # Schema structure
-│   │   └── data.sql                # Table data
+│   │   └── tables/                  # Individual table backups
+│   │       ├── users/
+│   │       │   ├── schema.sql       # Table structure (CREATE TABLE, indexes, constraints)
+│   │       │   └── data.sql         # Table data (INSERT statements)
+│   │       ├── orders/
+│   │       │   ├── schema.sql
+│   │       │   └── data.sql
+│   │       └── products/
+│   │           ├── schema.sql
+│   │           └── data.sql
 │   ├── {custom-schema-1}/           # Custom schema 1
-│   │   ├── schema.sql
-│   │   └── data.sql
-│   └── {custom-schema-2}/           # Custom schema 2
-│       ├── schema.sql
-│       └── data.sql
+│   │   └── tables/
+│   │       ├── table1/
+│   │       │   ├── schema.sql
+│   │       │   └── data.sql
+│   │       └── table2/
+│   │           ├── schema.sql
+│   │           └── data.sql
+│   └── {custom-schema-2}/            # Custom schema 2
+│       └── tables/
+│           └── ...
 └── archive/                         # Historical backups with prefixes
     ├── 2024-01-15T00-00-00Z--org/repo1--push--abc1234/
     │   ├── roles.sql
     │   ├── public/
+    │   │   └── tables/
+    │   │       ├── users/
+    │   │       ├── orders/
+    │   │       └── products/
     │   └── {custom-schema}/
+    │       └── tables/
     ├── 2024-01-15T12-30-00Z--org/repo2--pr--def5678/
     └── 2024-01-16T00-00-00Z--org/repo1--schedule--ghi9012/
 ```
@@ -461,6 +466,25 @@ This backup was:
 - Event type: Push to branch
 - Commit: `abc1234...`
 
+### Per-Table Backup Structure
+
+Each table within a schema is backed up individually:
+
+**Table Folder Structure:**
+```
+{schema}/tables/{table-name}/
+├── schema.sql    # Contains: CREATE TABLE, indexes, constraints, triggers
+└── data.sql      # Contains: INSERT statements with table data
+```
+
+**Benefits of Per-Table Backups:**
+- ✅ **Selective Restoration**: Restore individual tables without affecting others
+- ✅ **Better Organization**: Clear structure for each table
+- ✅ **Easier Maintenance**: Update or restore specific tables independently
+- ✅ **Reduced Risk**: Smaller files reduce risk of corruption affecting entire schema
+- ✅ **Parallel Processing**: Can restore multiple tables in parallel if needed
+- ✅ **Clear Dependencies**: Easy to see table relationships and restore order
+
 ### Benefits of This Structure
 
 1. **Latest Always Available**: `backups/latest/` always has the most recent backup
@@ -470,6 +494,8 @@ This backup was:
 5. **Traceability**: Source repo and commit SHA for full audit trail
 6. **No Conflicts**: Unique naming prevents folder conflicts
 7. **Human Readable**: Easy to browse and understand
+8. **Per-Table Organization**: Individual table backups for selective restoration
+9. **Better Maintainability**: Update or restore specific tables independently
 
 ---
 
@@ -748,11 +774,14 @@ jobs:
 ### End-to-End Test Scenarios
 
 #### 7. Backup and Restore
-- ✅ **Test**: Full backup (roles + all schemas)
-- ✅ **Test**: Restore from backup successfully
+- ✅ **Test**: Full backup (roles + all schemas with per-table structure)
+- ✅ **Test**: Restore from backup successfully (full database)
+- ✅ **Test**: Restore specific table only
 - ✅ **Test**: Restore specific schema only
 - ✅ **Test**: Restore fails on invalid backup file
 - ✅ **Test**: Restore with missing dependencies
+- ✅ **Test**: Per-table backup structure is correct
+- ✅ **Test**: Table schema and data files are valid SQL
 
 #### 8. Edge Cases
 - ✅ **Test**: Database with no tables

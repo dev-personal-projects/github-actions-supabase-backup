@@ -100,26 +100,48 @@ The workflow performs the following steps:
 
 #### Backup Storage Structure
 
-Backups are stored **in this repository** in the `backups/` directory:
+Backups are stored **in this repository** in the `backups/` directory. Each table is backed up individually for better organization:
 
 ```
 backups/
 ├── latest/                      # Always contains latest backup
-│   ├── roles.sql
-│   ├── public/
-│   │   ├── schema.sql
-│   │   └── data.sql
-│   └── {custom-schema}/
-│       ├── schema.sql
-│       └── data.sql
+│   ├── roles.sql               # All database roles
+│   ├── public/                 # Public schema
+│   │   └── tables/             # Individual table backups
+│   │       ├── users/
+│   │       │   ├── schema.sql  # Table structure
+│   │       │   └── data.sql    # Table data
+│   │       ├── orders/
+│   │       │   ├── schema.sql
+│   │       │   └── data.sql
+│   │       └── products/
+│   │           ├── schema.sql
+│   │           └── data.sql
+│   └── {custom-schema}/         # Custom schemas
+│       └── tables/
+│           └── {table-name}/
+│               ├── schema.sql
+│               └── data.sql
 └── archive/                     # Historical backups with prefixes
     ├── 2024-01-15T00-00-00Z--org/repo1--push--abc1234/
     │   ├── roles.sql
     │   ├── public/
+    │   │   └── tables/
+    │   │       ├── users/
+    │   │       ├── orders/
+    │   │       └── products/
     │   └── {custom-schema}/
+    │       └── tables/
     ├── 2024-01-15T12-30-00Z--org/repo2--pr--def5678/
     └── 2024-01-16T00-00-00Z--org/repo1--schedule--ghi9012/
 ```
+
+**Per-Table Organization Benefits:**
+- ✅ **Selective Restoration**: Restore individual tables without affecting others
+- ✅ **Better Organization**: Clear structure for each table
+- ✅ **Easier Maintenance**: Update or restore specific tables independently
+- ✅ **Reduced Risk**: Smaller files reduce risk of corruption
+- ✅ **Clear Dependencies**: Easy to see table relationships
 
 #### Backup Naming Convention
 
@@ -154,20 +176,40 @@ To restore your database from a backup:
    - **Historical backup**: `backups/archive/{timestamp}--{repo}--{event}--{sha}/`
 3. Run the following commands in order:
 
+#### Full Database Restoration
+
 ```bash
 # Restore roles
-supabase db execute --db-url "<SUPABASE_DB_URL>" -f roles.sql
+supabase db execute --db-url "<SUPABASE_DB_URL>" -f backups/latest/roles.sql
 
-# Restore public schema
-supabase db execute --db-url "<SUPABASE_DB_URL>" -f public/schema.sql
-supabase db execute --db-url "<SUPABASE_DB_URL>" -f public/data.sql
+# Restore all tables in public schema
+for table_dir in backups/latest/public/tables/*/; do
+  table_name=$(basename "$table_dir")
+  echo "Restoring table: $table_name"
+  supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$table_dir/schema.sql"
+  supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$table_dir/data.sql"
+done
 
 # Restore custom schemas (if any)
-supabase db execute --db-url "<SUPABASE_DB_URL>" -f {custom-schema}/schema.sql
-supabase db execute --db-url "<SUPABASE_DB_URL>" -f {custom-schema}/data.sql
+for schema_dir in backups/latest/{custom-schema}/tables/*/; do
+  table_name=$(basename "$schema_dir")
+  echo "Restoring table: $table_name"
+  supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$schema_dir/schema.sql"
+  supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$schema_dir/data.sql"
+done
 ```
 
-This restores roles, schema, and data, bringing your database back to its backed-up state.
+#### Selective Table Restoration
+
+To restore a specific table only:
+
+```bash
+# Restore a single table (e.g., users table in public schema)
+supabase db execute --db-url "<SUPABASE_DB_URL>" -f backups/latest/public/tables/users/schema.sql
+supabase db execute --db-url "<SUPABASE_DB_URL>" -f backups/latest/public/tables/users/data.sql
+```
+
+This allows you to restore the entire database or selectively restore individual tables as needed.
 
 ### 4. **Workflow Toggle**
 
