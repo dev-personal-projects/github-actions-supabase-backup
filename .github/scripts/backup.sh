@@ -105,9 +105,15 @@ backup_table() {
 
   # Backup table structure (schema only)
   echo "Backing up structure for table: $SCHEMA.$TABLE"
+  # Use PostgreSQL 17 pg_dump if available, otherwise fall back to system default
+  local PG_DUMP="pg_dump"
+  if [ -f "/usr/lib/postgresql/17/bin/pg_dump" ]; then
+    PG_DUMP="/usr/lib/postgresql/17/bin/pg_dump"
+  fi
+  
   local SCHEMA_ERROR_FILE=$(mktemp)
   # Use --table with just table name since --schema already specifies the schema
-  if ! pg_dump "$DB_URL" \
+  if ! $PG_DUMP "$DB_URL" \
     --schema="$SCHEMA" \
     --table="$TABLE" \
     --schema-only \
@@ -130,7 +136,7 @@ backup_table() {
   echo "Backing up data for table: $SCHEMA.$TABLE"
   local DATA_ERROR_FILE=$(mktemp)
   # Use --table with just table name since --schema already specifies the schema
-  if ! pg_dump "$DB_URL" \
+  if ! $PG_DUMP "$DB_URL" \
     --schema="$SCHEMA" \
     --table="$TABLE" \
     --data-only \

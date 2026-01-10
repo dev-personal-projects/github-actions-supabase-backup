@@ -44,12 +44,17 @@ jobs:
         if: env.BACKUP_ENABLED == 'true'
         run: |
           sudo apt-get update
+          # Remove default postgresql-client if installed to avoid version conflicts
+          sudo apt-get remove -y postgresql-client 2>/dev/null || true
           # Install PostgreSQL 17 client to match server version
           sudo apt-get install -y wget ca-certificates
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
           echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
           sudo apt-get install -y postgresql-client-17
+          # Verify PostgreSQL 17 is being used
+          /usr/lib/postgresql/17/bin/pg_dump --version
+          /usr/lib/postgresql/17/bin/pg_dumpall --version
 
       - name: Setup backup environment
         if: env.BACKUP_ENABLED == 'true'
