@@ -15,6 +15,7 @@ fi
 # Query to detect user schemas (excluding system schemas)
 # First test connection with better error reporting
 # Supabase requires SSL connections - add ?sslmode=require if not present
+# Note: Pooler connections (port 6543) should already have sslmode in the connection string
 if [[ "$DB_URL" != *"sslmode"* ]]; then
   if [[ "$DB_URL" == *"?"* ]]; then
     DB_URL="${DB_URL}&sslmode=require"
