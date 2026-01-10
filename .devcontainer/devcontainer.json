@@ -1,0 +1,44 @@
+{
+    "name": "Supabase Database Backup Dev Container",
+    "build": {
+        "dockerfile": "Dockerfile.dev",
+        "context": ".."
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-azuretools.vscode-docker",
+                "github.vscode-pull-request-github",
+                "github.copilot",
+                "github.copilot-chat",
+                "ms-vscode.vscode-json",
+                "redhat.vscode-yaml",
+                "ms-python.python",
+                "ms-python.vscode-pylance"
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "redhat.vscode-yaml",
+                "[yaml]": {
+                    "editor.defaultFormatter": "redhat.vscode-yaml"
+                },
+                "[json]": {
+                    "editor.defaultFormatter": "vscode.json-language-features"
+                }
+            }
+        }
+    },
+    "remoteUser": "vscode",
+    "postCreateCommand": "echo 'Dev container ready! Supabase CLI installed. Run: supabase --version'",
+    "remoteEnv": {
+        "SUPABASE_DB_URL": "${localEnv:SUPABASE_DB_URL}"
+    },
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+    ]
+}

@@ -1,0 +1,35 @@
+# Use the official Microsoft devcontainer base image
+FROM mcr.microsoft.com/devcontainers/base:ubuntu
+
+# Set environment variables
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    wget \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Supabase CLI
+# Get latest version and download the .deb package
+RUN SUPABASE_VERSION=$(curl -s https://api.github.com/repos/supabase/cli/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/') && \
+    curl -fsSL "https://github.com/supabase/cli/releases/download/v${SUPABASE_VERSION}/supabase_${SUPABASE_VERSION}_linux_amd64.deb" -o /tmp/supabase.deb && \
+    dpkg -i /tmp/supabase.deb || (apt-get update && apt-get install -f -y && dpkg -i /tmp/supabase.deb) && \
+    rm /tmp/supabase.deb
+
+# Verify installations
+RUN supabase --version && \
+    git --version && \
+    psql --version
+
+# Set working directory
+WORKDIR /workspace
+
+# Keep container running
+CMD ["sleep", "infinity"]
+
