@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict F1MBzkvGvnlaIiyVHh2ZadseSDj9TSNEw4lGX0Yj2UZgl2l6W6R4zaKkhizdzws
+\restrict 8kchOmjrgGrd4LfAjurFFgdtFiqOMOszQiqAKP5LOetmyyDgSJ95UMPdvlNfkZz
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -38,5 +38,5 @@ SELECT pg_catalog.setval('lh_system.lh_configuration_cfg_id_seq', 1, false);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict F1MBzkvGvnlaIiyVHh2ZadseSDj9TSNEw4lGX0Yj2UZgl2l6W6R4zaKkhizdzws
+\unrestrict 8kchOmjrgGrd4LfAjurFFgdtFiqOMOszQiqAKP5LOetmyyDgSJ95UMPdvlNfkZz
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 3Z3cmzAToSjFXUBvSuU3hIauylJEtuTqeDuywG5NjTvRThExAEpbKZ1T2PD6JW9
+\restrict soa3ItBSiKSdDDFN8UaPz6PRftTg5zfQrcE2CRif5ov29eDZjbIbuV6k6RbLq10
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -43,5 +43,5 @@ SELECT pg_catalog.setval('lh_billing.billing_units_billing_unit_id_seq', 5, true
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 3Z3cmzAToSjFXUBvSuU3hIauylJEtuTqeDuywG5NjTvRThExAEpbKZ1T2PD6JW9
+\unrestrict soa3ItBSiKSdDDFN8UaPz6PRftTg5zfQrcE2CRif5ov29eDZjbIbuV6k6RbLq10
 

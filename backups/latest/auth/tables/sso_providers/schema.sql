@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict GdXqQK602cfsi9yj0f8WHXgSfJDRb898kwQcpj4ldmS5n8RztCNIwut3RPpFfre
+\restrict SULzxnuKJQCNX2P6tdyxPe32GeQySn84Hjis2toQ0Y627ZzGJttwCMPUPA6cfoG
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -81,5 +81,5 @@ ALTER TABLE auth.sso_providers ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict GdXqQK602cfsi9yj0f8WHXgSfJDRb898kwQcpj4ldmS5n8RztCNIwut3RPpFfre
+\unrestrict SULzxnuKJQCNX2P6tdyxPe32GeQySn84Hjis2toQ0Y627ZzGJttwCMPUPA6cfoG
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 5DfCQp8FlGGvm1b90qfp7dyfcFYM0crLJdh6VjxR0f090dMG4eMMmJfmrGNvACQ
+\restrict MpytB3UcooJdgB7KPmJaxMNnX1LXw0SgpRHFy1msragT0E90wRB97B6fGeaSIl6
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 5DfCQp8FlGGvm1b90qfp7dyfcFYM0crLJdh6VjxR0f090dMG4eMMmJfmrGNvACQ
+\unrestrict MpytB3UcooJdgB7KPmJaxMNnX1LXw0SgpRHFy1msragT0E90wRB97B6fGeaSIl6
 

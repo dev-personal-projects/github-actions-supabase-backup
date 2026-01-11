@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ZFIaDdYOWCkeGdoC60GV9cZkGjU5htON32M2du75KnvuhowAhwBrhm2Rs8RV0Jm
+\restrict AWLz2f5PSxJtPIS5SGIg8JdE5Fey1sjoMvgtunzNnxWUl3m1RyNnXUt97XlI0Ep
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -96,5 +96,5 @@ COPY realtime.schema_migrations (version, inserted_at) FROM stdin;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ZFIaDdYOWCkeGdoC60GV9cZkGjU5htON32M2du75KnvuhowAhwBrhm2Rs8RV0Jm
+\unrestrict AWLz2f5PSxJtPIS5SGIg8JdE5Fey1sjoMvgtunzNnxWUl3m1RyNnXUt97XlI0Ep
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 0VCzxV1d8LAy2psFqlisuzgqi3JevsA1ab5KEHDU1lP0kWAAtwBOSGx4qcfpbMW
+\restrict w5C2ARc7zCXGyMlStvd7ZdI3bNdh2rY1dBBC2432l2isU5F3nHUDRjbDGnFT36A
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -38,5 +38,5 @@ SELECT pg_catalog.setval('lh_billing.tax_rates_tax_rate_id_seq', 1, false);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 0VCzxV1d8LAy2psFqlisuzgqi3JevsA1ab5KEHDU1lP0kWAAtwBOSGx4qcfpbMW
+\unrestrict w5C2ARc7zCXGyMlStvd7ZdI3bNdh2rY1dBBC2432l2isU5F3nHUDRjbDGnFT36A
 

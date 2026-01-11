@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict cA00DckTMd8lmRJryaqpzHkygxgL1K7bVNE1PN85oIPfzkyDYRql66dMEKikmoh
+\restrict xsIYH8a9ekgAMW0KKw1ei3281d6YtjaTk2Vj7fQRpMTUrVz6hloLOsalScBRjHn
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -61,5 +61,5 @@ ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict cA00DckTMd8lmRJryaqpzHkygxgL1K7bVNE1PN85oIPfzkyDYRql66dMEKikmoh
+\unrestrict xsIYH8a9ekgAMW0KKw1ei3281d6YtjaTk2Vj7fQRpMTUrVz6hloLOsalScBRjHn
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 7t7U96qjzKcFKIjnTPlozXBS3VQkdr1cEHcTqTONWIU6v7enBjfBljepSvbUKBy
+\restrict oSoJudabLLDChgekqhamvaRuPJKm3YURoPiy5Ibujkx55dRrTJqgGMw3atb2YH1
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -95,5 +95,5 @@ ALTER TABLE ONLY auth.oauth_consents
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 7t7U96qjzKcFKIjnTPlozXBS3VQkdr1cEHcTqTONWIU6v7enBjfBljepSvbUKBy
+\unrestrict oSoJudabLLDChgekqhamvaRuPJKm3YURoPiy5Ibujkx55dRrTJqgGMw3atb2YH1
 

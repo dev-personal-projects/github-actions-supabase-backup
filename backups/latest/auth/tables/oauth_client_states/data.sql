@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 1nMQpsNjfYhRAyN0WeStdO069iu5iTvKpWablODFuoeNCsN8mrlifuvbQsEjMij
+\restrict OSF5GbPk8hJkMshoUgEfnIdfFqtZEc6M9aec4hIXxdq2bE3vbHUkxr84NPLeeIo
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY auth.oauth_client_states (id, provider_type, code_verifier, created_at) FRO
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 1nMQpsNjfYhRAyN0WeStdO069iu5iTvKpWablODFuoeNCsN8mrlifuvbQsEjMij
+\unrestrict OSF5GbPk8hJkMshoUgEfnIdfFqtZEc6M9aec4hIXxdq2bE3vbHUkxr84NPLeeIo
 
