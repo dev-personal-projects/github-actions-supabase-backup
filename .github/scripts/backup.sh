@@ -173,14 +173,152 @@ backup_schema() {
   fi
 }
 
+# Print comprehensive backup summary
+# Collects and displays detailed statistics about the completed backup
+print_backup_summary() {
+  local BACKUP_DIR="${1:-}"
+  local DB_URL="${2:-}"
+  local START_TIME="${3:-}"
+  local END_TIME="${4:-}"
+  
+  [ -z "$BACKUP_DIR" ] && {
+    echo "Error: Backup directory is required" >&2
+    return 1
+  }
+  
+  local END_TIME_ACTUAL="${END_TIME:-$(date +%s)}"
+  local START_TIME_ACTUAL="${START_TIME:-$END_TIME_ACTUAL}"
+  local DURATION=$((END_TIME_ACTUAL - START_TIME_ACTUAL))
+  
+  # Get database size if DB_URL provided
+  local DB_SIZE=0
+  if [ -n "$DB_URL" ]; then
+    local PSQL=$(get_pg_binary "psql")
+    DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
+    DB_SIZE=$($PSQL "$DB_URL" -Atc "SELECT pg_database_size(current_database());" 2>/dev/null || echo "0")
+  fi
+  
+  # Count schemas and tables
+  local SCHEMA_COUNT=0
+  local TOTAL_TABLE_COUNT=0
+  local TOTAL_BACKUP_SIZE=0
+  local ROLES_SIZE=0
+  
+  # Count roles file size
+  if [ -f "$BACKUP_DIR/latest/roles.sql" ]; then
+    ROLES_SIZE=$(stat -c%s "$BACKUP_DIR/latest/roles.sql" 2>/dev/null || echo "0")
+    TOTAL_BACKUP_SIZE=$((TOTAL_BACKUP_SIZE + ROLES_SIZE))
+  fi
+  
+  # Process each schema directory
+  local SCHEMA_DETAILS=""
+  if [ -d "$BACKUP_DIR/latest" ]; then
+    while IFS= read -r schema_dir; do
+      [ ! -d "$schema_dir" ] && continue
+      
+      local schema=$(basename "$schema_dir")
+      [ "$schema" = "latest" ] && continue
+      
+      SCHEMA_COUNT=$((SCHEMA_COUNT + 1))
+      
+      # Count tables in this schema
+      local table_count=0
+      local schema_table_size=0
+      local schema_dump_size=0
+      
+      if [ -d "$schema_dir/tables" ]; then
+        table_count=$(find "$schema_dir/tables" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+        schema_table_size=$(du -sb "$schema_dir/tables" 2>/dev/null | cut -f1 || echo "0")
+        TOTAL_BACKUP_SIZE=$((TOTAL_BACKUP_SIZE + schema_table_size))
+      fi
+      
+      # Check for schema dump file
+      local dump_file=$(find "$schema_dir" -maxdepth 1 -name "${schema}_schema_*.dump" -type f 2>/dev/null | head -1)
+      if [ -n "$dump_file" ] && [ -f "$dump_file" ]; then
+        schema_dump_size=$(stat -c%s "$dump_file" 2>/dev/null || echo "0")
+        TOTAL_BACKUP_SIZE=$((TOTAL_BACKUP_SIZE + schema_dump_size))
+      fi
+      
+      TOTAL_TABLE_COUNT=$((TOTAL_TABLE_COUNT + table_count))
+      
+      # Format schema details
+      SCHEMA_DETAILS="${SCHEMA_DETAILS}
+  ${schema}:
+    - Tables: ${table_count}
+    - Per-table files: $(numfmt --to=iec-i --suffix=B "$schema_table_size" 2>/dev/null || echo "0B")"
+      
+      if [ -n "$dump_file" ]; then
+        SCHEMA_DETAILS="${SCHEMA_DETAILS}
+    - Schema dump: $(numfmt --to=iec-i --suffix=B "$schema_dump_size" 2>/dev/null || echo "0B") ($(basename "$dump_file"))"
+      fi
+      
+      local schema_total=$((schema_table_size + schema_dump_size))
+      SCHEMA_DETAILS="${SCHEMA_DETAILS}
+    - Total schema size: $(numfmt --to=iec-i --suffix=B "$schema_total" 2>/dev/null || echo "0B")"
+      
+    done <<< "$(find "$BACKUP_DIR/latest" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)"
+  fi
+  
+  # Calculate backup speed if duration > 0
+  local BACKUP_SPEED="N/A"
+  if [ $DURATION -gt 0 ] && [ $TOTAL_BACKUP_SIZE -gt 0 ]; then
+    local speed_bps=$((TOTAL_BACKUP_SIZE / DURATION))
+    BACKUP_SPEED="$(numfmt --to=iec-i --suffix=B/s "$speed_bps" 2>/dev/null || echo "N/A")"
+  fi
+  
+  # Print summary
+  cat <<EOF
+
+╔════════════════════════════════════════════════════════════════╗
+║                    BACKUP SUMMARY REPORT                       ║
+╚════════════════════════════════════════════════════════════════╝
+
+📅 Backup Information:
+   Timestamp:        $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+   Duration:         ${DURATION}s
+   Backup Speed:     ${BACKUP_SPEED}
+
+💾 Database Information:
+EOF
+
+  if [ $DB_SIZE -gt 0 ]; then
+    cat <<EOF
+   Database Size:    $(numfmt --to=iec-i --suffix=B "$DB_SIZE" 2>/dev/null || echo "N/A")
+EOF
+  else
+    cat <<EOF
+   Database Size:    N/A (not available)
+EOF
+  fi
+
+  cat <<EOF
+
+📊 Backup Statistics:
+   Schemas Backed Up: ${SCHEMA_COUNT}
+   Tables Backed Up:  ${TOTAL_TABLE_COUNT}
+   Roles File Size:   $(numfmt --to=iec-i --suffix=B "$ROLES_SIZE" 2>/dev/null || echo "0B")
+   Total Backup Size: $(numfmt --to=iec-i --suffix=B "$TOTAL_BACKUP_SIZE" 2>/dev/null || echo "0B")
+
+📁 Schema Details:${SCHEMA_DETAILS}
+
+📂 Backup Location:
+   Directory: ${BACKUP_DIR}/latest
+
+✅ Status: Backup completed successfully
+
+╚════════════════════════════════════════════════════════════════╝
+EOF
+}
+
 # Main entry point for command-line usage
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
   case "${1:-}" in
     roles)  backup_roles "${2:-}" "${3:-}" ;;
     table)  backup_table "${2:-}" "${3:-}" "${4:-}" "${5:-}" ;;
     schema) backup_schema "${2:-}" "${3:-}" "${4:-}" ;;
+    summary) print_backup_summary "${2:-}" "${3:-}" "${4:-}" "${5:-}" ;;
     *)
-      echo "Usage: $0 {roles|table|schema} [args...]" >&2
+      echo "Usage: $0 {roles|table|schema|summary} [args...]" >&2
       exit 1
       ;;
   esac

@@ -10,7 +10,9 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
-# Detect user schemas (excludes Supabase system schemas)
+# Detect all schemas for full database backup
+# Includes ALL Supabase system schemas (auth, storage, realtime, vault, etc.)
+# Only excludes PostgreSQL internal system schemas (pg_catalog, information_schema, pg_toast, pg_temp*)
 detect_schemas() {
   local DB_URL="${1:-}"
   
@@ -52,7 +54,9 @@ detect_schemas() {
   fi
   rm -f "$ERROR_FILE"
 
-  # Query schemas
+  # Query all schemas for full backup
+  # Only exclude PostgreSQL internal system schemas
+  # Include ALL Supabase system schemas (auth, storage, realtime, vault, etc.)
   local QUERY_OUTPUT=$(mktemp)
   local QUERY_ERROR=$(mktemp)
   
@@ -60,10 +64,7 @@ detect_schemas() {
     SELECT schema_name 
     FROM information_schema.schemata 
     WHERE schema_name NOT IN (
-      'pg_catalog', 'information_schema', 'pg_toast',
-      'auth', 'extensions', 'graphql', 'graphql_public',
-      'realtime', 'storage', 'vault', 'pgbouncer',
-      'cron', 'pg_cron', 'pgagent'
+      'pg_catalog', 'information_schema', 'pg_toast'
     )
     AND schema_name NOT LIKE 'pg_temp%'
     AND schema_name NOT LIKE 'pg_toast_temp%'

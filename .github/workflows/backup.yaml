@@ -141,7 +141,9 @@ jobs:
 
       - name: Backup schemas and tables
         if: env.BACKUP_ENABLED == 'true'
+        id: backup-schemas
         run: |
+          START_TIME=$(date +%s)
           source .github/scripts/backup.sh
           SCHEMAS="${{ steps.detect-schemas.outputs.schemas }}"
 
@@ -155,6 +157,18 @@ jobs:
               echo "Warning: Failed to backup schema $schema, continuing..." >&2
             }
           done <<< "$SCHEMAS"
+
+          END_TIME=$(date +%s)
+          echo "start_time=$START_TIME" >> $GITHUB_OUTPUT
+          echo "end_time=$END_TIME" >> $GITHUB_OUTPUT
+
+      - name: Generate backup summary
+        if: env.BACKUP_ENABLED == 'true'
+        run: |
+          source .github/scripts/backup.sh
+          START_TIME="${{ steps.backup-schemas.outputs.start_time }}"
+          END_TIME="${{ steps.backup-schemas.outputs.end_time }}"
+          print_backup_summary "$BACKUP_DIR" "$SUPABASE_DB_URL" "$START_TIME" "$END_TIME"
 
       - name: Commit backups
         if: env.BACKUP_ENABLED == 'true'

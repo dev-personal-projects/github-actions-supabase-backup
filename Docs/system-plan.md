@@ -10,7 +10,7 @@ This document outlines the architecture, requirements, and implementation plan f
 
 1. **Automated Backups**: Create reliable, automated backups of a shared Supabase database
 2. **Multi-Repo Triggers**: Allow any repository in an organization to trigger backups via commits, PRs, or scheduled events
-3. **Schema Flexibility**: Backup public schema and custom schemas (excluding Supabase system schemas)
+3. **Schema Flexibility**: Backup ALL schemas including Supabase system schemas (full database backup)
 4. **Concurrent Backup Handling**: Prevent duplicate backups when multiple repos trigger simultaneously
 5. **Centralized Storage**: Store all backups in a dedicated backup repository with clear organization
 6. **Flexible Triggers**: Configurable backup triggers (commits, PRs, scheduled, manual) from any source repo
@@ -310,70 +310,81 @@ on:
 
 **This system works with ANY Supabase database account.** Simply provide your Supabase connection string, and the system will automatically:
 
-- ✅ **Detect all user schemas** (public + any custom schemas)
+- ✅ **Detect ALL schemas** (public + custom schemas + ALL Supabase system schemas)
 - ✅ **Detect all tables** within each schema
-- ✅ **Exclude Supabase system schemas** automatically
-- ✅ **Backup everything** that should be backed up
+- ✅ **Backup EVERYTHING** - complete database backup with no exclusions
+- ✅ **Include Supabase system schemas** (auth, storage, realtime, vault, extensions, etc.)
 
-**No configuration needed** - the system adapts to your database structure automatically.
+**No configuration needed** - the system performs a complete full backup of the entire database.
 
 ### How It Works
 
 1. **Connection**: You provide your Supabase PostgreSQL connection string via `SUPABASE_DB_URL` secret
-2. **Detection**: System queries the database to discover all schemas and tables
-3. **Filtering**: Automatically excludes Supabase system schemas
-4. **Backup**: Creates per-table backups for all user schemas and tables
+2. **Detection**: System queries the database to discover ALL schemas and tables
+3. **Backup**: Creates per-table backups for ALL schemas and tables (complete database backup)
 
-### Supabase System Schemas (Exclude from Backup)
-- `auth` - Authentication system
-- `extensions` - PostgreSQL extensions
-- `graphql` - GraphQL system
-- `graphql_public` - GraphQL public API
-- `realtime` - Realtime system
-- `storage` - Storage system
-- `vault` - Secrets management
-- `pgbouncer` - Connection pooling
-- `pg_temp_*` - Temporary schemas
-- `pg_toast_temp_*` - Temporary toast schemas
-- `pg_catalog` - PostgreSQL system catalog
-- `information_schema` - PostgreSQL information schema
+### Schemas Included in Backup (FULL BACKUP)
 
-### User Schemas (Include in Backup)
+The system performs a **complete full backup** and includes:
 
-The system automatically detects and backs up:
-
-- **`public` schema** - Always backed up (primary application schema)
+- **`public` schema** - Primary application schema
   - All tables in the public schema are backed up individually
   - Number of tables varies by database (automatically detected)
 
-- **Custom schemas** - Automatically detected and backed up
+- **Supabase System Schemas** - ALL included in backup:
+  - `auth` - Authentication system (users, sessions, etc.)
+  - `storage` - Storage system (files, buckets, etc.)
+  - `realtime` - Realtime system
+  - `vault` - Secrets management
+  - `extensions` - PostgreSQL extensions metadata
+  - `graphql` - GraphQL system
+  - `graphql_public` - GraphQL public API
+  - `pgbouncer` - Connection pooling metadata
+  - `cron` - Scheduled jobs
+  - `pg_cron` - PostgreSQL cron extension
+  - `pgagent` - PostgreSQL agent
+  - Any other Supabase-managed schemas
+
+- **Custom schemas** - All user-created schemas
   - Any custom schemas you've created (e.g., `lh_billing`, `custom_app`, `analytics`, etc.)
   - All tables within custom schemas are backed up individually
   - System adapts to your database structure automatically
 
+### Schemas Excluded (PostgreSQL System Only)
+
+Only PostgreSQL internal system schemas are excluded (cannot be backed up):
+- `pg_catalog` - PostgreSQL system catalog (internal)
+- `information_schema` - PostgreSQL information schema (internal)
+- `pg_toast` - PostgreSQL toast tables (internal)
+- `pg_temp_*` - Temporary schemas (session-specific)
+- `pg_toast_temp_*` - Temporary toast schemas (session-specific)
+
 **Example:** If your database has:
 - `public` schema with 20 tables
+- `auth` schema with 15 tables
+- `storage` schema with 8 tables
 - `analytics` schema with 5 tables
 - `billing` schema with 8 tables
 
-The system will automatically detect and backup all 33 tables across 3 schemas.
+The system will automatically detect and backup all 56 tables across 5 schemas (complete backup).
 
 ### Automatic Schema Detection Strategy
 
 The system uses dynamic detection to work with any Supabase database:
 
-1. **Query available schemas:**
+1. **Query ALL available schemas (full backup):**
    ```sql
    SELECT schema_name 
    FROM information_schema.schemata 
    WHERE schema_name NOT IN (
-     'pg_catalog', 'information_schema', 'pg_toast',
-     'auth', 'extensions', 'graphql', 'graphql_public',
-     'realtime', 'storage', 'vault', 'pgbouncer'
+     'pg_catalog', 'information_schema', 'pg_toast'
    )
    AND schema_name NOT LIKE 'pg_temp%'
-   AND schema_name NOT LIKE 'pg_toast_temp%';
+   AND schema_name NOT LIKE 'pg_toast_temp%'
+   ORDER BY schema_name;
    ```
+   
+   **Note**: Only PostgreSQL internal system schemas are excluded. ALL Supabase schemas (auth, storage, realtime, vault, extensions, etc.) are included.
 
 2. **Query tables for each detected schema:**
    ```sql
@@ -392,9 +403,11 @@ The system uses dynamic detection to work with any Supabase database:
 
 **Key Features:**
 - ✅ **Zero configuration** - Works with any Supabase database structure
-- ✅ **Automatic detection** - Discovers all schemas and tables dynamically
+- ✅ **Automatic detection** - Discovers ALL schemas and tables dynamically
+- ✅ **Full backup** - Includes ALL Supabase system schemas (auth, storage, realtime, etc.)
 - ✅ **Scalable** - Handles databases with any number of schemas/tables
 - ✅ **Future-proof** - Automatically includes new schemas/tables when added
+- ✅ **Complete coverage** - No Supabase schemas excluded
 
 ---
 
@@ -553,6 +566,48 @@ Each table within a schema is backed up individually:
 - ✅ **Reduced Risk**: Smaller files reduce risk of corruption affecting entire schema
 - ✅ **Parallel Processing**: Can restore multiple tables in parallel if needed
 - ✅ **Clear Dependencies**: Easy to see table relationships and restore order
+
+### Dual Backup Structure (Standalone Script)
+
+**Note**: The standalone backup script (`0_backup_supabase_lighthouse_db.sh`) creates a **dual backup structure** that includes both:
+
+1. **Schema-Level .dump Files** (for fast full schema restoration):
+   - Location: `{schema}/{schema}_schema_{timestamp}.dump`
+   - Format: PostgreSQL custom format (compressed)
+   - Contains: Complete schema backup (all tables, indexes, constraints, etc.)
+   - Created by: Standalone script
+
+2. **Per-Table Files** (for selective table restoration):
+   - Location: `{schema}/tables/{table-name}/schema.sql` and `data.sql`
+   - Format: Plain SQL files
+   - Contains: Individual table structure and data
+   - Created by: Both workflow and standalone script (using backup.sh)
+
+**Complete Structure (Standalone Script):**
+```
+backups/latest/
+├── roles.sql
+├── public/
+│   ├── public_schema_20241215_143045.dump    # Full schema dump
+│   └── tables/                                # Per-table backups
+│       ├── users/
+│       │   ├── schema.sql
+│       │   └── data.sql
+│       └── orders/
+│           ├── schema.sql
+│           └── data.sql
+└── auth/
+    ├── auth_schema_20241215_143045.dump     # Full auth schema dump
+    └── tables/                                # Per-table backups
+        └── ...
+```
+
+**Benefits of Dual Structure:**
+- ✅ **Fast Full Schema Restoration**: Use .dump file for quick entire schema restore
+- ✅ **Selective Table Restoration**: Use per-table files for granular restoration
+- ✅ **Flexibility**: Choose restoration method based on need
+- ✅ **Backup Completeness**: Both formats ensure complete backup coverage
+- ✅ **Consistency**: Per-table structure matches workflow backups
 
 ### Benefits of This Structure
 
@@ -797,7 +852,7 @@ jobs:
 #### 1. Schema Detection
 - ✅ **Test**: Detect public schema
 - ✅ **Test**: Detect custom schemas
-- ✅ **Test**: Exclude Supabase system schemas
+- ✅ **Test**: Include ALL Supabase system schemas (full backup)
 - ✅ **Test**: Handle empty database (no custom schemas)
 - ✅ **Test**: Handle database with multiple custom schemas
 
@@ -925,8 +980,8 @@ jobs:
 **Rationale**: Prevents backup spam, reduces costs, predictable schedule
 
 ### Decision 2: Schema Backup Strategy
-**Decision**: Backup public + all custom schemas (exclude Supabase system schemas)
-**Rationale**: Covers all user data while avoiding system schema bloat
+**Decision**: Backup ALL schemas including Supabase system schemas (full database backup)
+**Rationale**: Complete database backup ensures nothing is lost, including Supabase-managed data (auth users, storage files metadata, realtime subscriptions, etc.)
 
 ### Decision 3: Storage Location
 **Decision**: Dedicated backup repository
