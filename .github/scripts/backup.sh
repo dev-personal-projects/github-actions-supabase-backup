@@ -66,6 +66,7 @@ backup_table() {
   }
 
   # Acquire connection slot before making database connections
+  # Note: Schema and data dumps are sequential, so we only need 1 slot per table backup
   local SLOT_FILE=$(acquire_connection_slot)
   if [ $? -ne 0 ] || [ -z "$SLOT_FILE" ]; then
     echo "Error: Failed to acquire connection slot for $SCHEMA.$TABLE" >&2
@@ -128,7 +129,8 @@ backup_table() {
       echo "No error details available" >&2
     fi
     rm -f "$ERROR_FILE"
-    release_connection_slot "$SLOT_FILE"
+    release_connection_slot "$SLOT_FILE_1"
+    release_connection_slot "$SLOT_FILE_2"
     trap - EXIT
     return 1
   done
@@ -180,7 +182,8 @@ backup_table() {
       echo "No error details available" >&2
     fi
     rm -f "$ERROR_FILE"
-    release_connection_slot "$SLOT_FILE"
+    release_connection_slot "$SLOT_FILE_1"
+    release_connection_slot "$SLOT_FILE_2"
     trap - EXIT
     return 1
   done
@@ -188,7 +191,8 @@ backup_table() {
   rm -f "$ERROR_FILE"
   [ ! -f "$TABLE_DIR/schema.sql" ] || [ ! -f "$TABLE_DIR/data.sql" ] && {
     echo "Error: Backup files not created for $SCHEMA.$TABLE" >&2
-    release_connection_slot "$SLOT_FILE"
+    release_connection_slot "$SLOT_FILE_1"
+    release_connection_slot "$SLOT_FILE_2"
     trap - EXIT
     return 1
   }

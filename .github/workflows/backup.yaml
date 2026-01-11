@@ -144,7 +144,7 @@ jobs:
         id: backup-schemas
         env:
           BACKUP_MAX_PARALLEL: 8 # Number of parallel table backups per schema
-          GLOBAL_MAX_CONNECTIONS: 15 # Total concurrent database connections across all schemas (conservative to avoid Supabase limits)
+          GLOBAL_MAX_CONNECTIONS: 6 # Total concurrent database connections across all schemas (conservative to avoid Supabase limits)
         run: |
           set +e  # Disable exit on error for parallel execution
           START_TIME=$(date +%s)
