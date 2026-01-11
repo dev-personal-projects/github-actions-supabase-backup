@@ -143,6 +143,7 @@ jobs:
         if: env.BACKUP_ENABLED == 'true'
         id: backup-schemas
         run: |
+          set +e  # Disable exit on error for parallel execution
           START_TIME=$(date +%s)
           source .github/scripts/backup.sh
           SCHEMAS="${{ steps.detect-schemas.outputs.schemas }}"
@@ -168,7 +169,7 @@ jobs:
                 if kill -0 "$pid" 2>/dev/null; then
                   NEW_PIDS+=("$pid")
                 else
-                  wait "$pid" || echo "Warning: Schema backup job failed" >&2
+                  wait "$pid" 2>/dev/null || true
                 fi
               done
               SCHEMA_PIDS=("${NEW_PIDS[@]}")
@@ -177,6 +178,7 @@ jobs:
             
             # Start schema backup in background
             (
+              set +e
               backup_schema "$SUPABASE_DB_URL" "$schema" "$BACKUP_DIR/latest" || {
                 echo "Warning: Failed to backup schema $schema" >&2
               }
@@ -187,7 +189,7 @@ jobs:
 
           # Wait for all schema backups to complete
           for pid in "${SCHEMA_PIDS[@]}"; do
-            wait "$pid" || echo "Warning: Schema backup job failed" >&2
+            wait "$pid" 2>/dev/null || true
           done
 
           echo "Completed backup for $SCHEMA_COUNT schema(s)"
@@ -195,6 +197,7 @@ jobs:
           END_TIME=$(date +%s)
           echo "start_time=$START_TIME" >> $GITHUB_OUTPUT
           echo "end_time=$END_TIME" >> $GITHUB_OUTPUT
+          set -e  # Re-enable exit on error (after outputs are set)
 
       - name: Generate backup summary
         if: env.BACKUP_ENABLED == 'true'

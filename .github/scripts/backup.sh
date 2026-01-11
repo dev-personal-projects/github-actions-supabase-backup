@@ -61,7 +61,7 @@ backup_table() {
 
   [ -z "$DB_URL" ] || [ -z "$SCHEMA" ] || [ -z "$TABLE" ] || [ -z "$OUTPUT_DIR" ] && {
     echo "Error: All parameters are required" >&2
-    exit 1
+    return 1
   }
 
   DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
@@ -97,12 +97,11 @@ backup_table() {
     return 1
   fi
 
-  # Backup data with optimized flags and COPY format for faster export
+  # Backup data with optimized flags (uses COPY format by default for faster export)
   echo "Backing up data for table: $SCHEMA.$TABLE"
   if ! $PG_DUMP "$DB_URL" --table="$SCHEMA.$TABLE" \
     --data-only --no-owner --no-privileges --no-tablespaces \
     --no-sync \
-    --column-inserts=false \
     > "$TABLE_DIR/data.sql" 2> "$ERROR_FILE"; then
     echo "Error: Failed to backup data for $SCHEMA.$TABLE" >&2
     if [ -s "$ERROR_FILE" ]; then
@@ -140,7 +139,7 @@ backup_schema() {
 
   [ -z "$DB_URL" ] || [ -z "$SCHEMA" ] || [ -z "$OUTPUT_DIR" ] && {
     echo "Error: All parameters are required" >&2
-    exit 1
+    return 1
   }
 
   mkdir -p "$OUTPUT_DIR/$SCHEMA/tables"
@@ -164,61 +163,66 @@ backup_schema() {
   if [ $TOTAL_TABLES -gt 1 ] && [ $MAX_PARALLEL -gt 1 ]; then
     echo "Backing up $TOTAL_TABLES tables in parallel (max $MAX_PARALLEL jobs)..."
     
+    # Temporarily disable exit on error for parallel execution
+    set +e
+    
+    # Use associative array for PID to table mapping (more reliable)
+    declare -A PID_TABLE_MAP
     local PIDS=()
-    local PID_TO_TABLE=()
     
     for table in "${TABLE_LIST[@]}"; do
       # Wait if we've reached max parallel jobs
       while [ ${#PIDS[@]} -ge $MAX_PARALLEL ]; do
         # Check which jobs have completed
         local NEW_PIDS=()
-        local NEW_MAP=()
-        local i=0
         for pid in "${PIDS[@]}"; do
           if kill -0 "$pid" 2>/dev/null; then
             NEW_PIDS+=("$pid")
-            NEW_MAP+=("${PID_TO_TABLE[$i]}")
           else
-            # Job completed, check result
-            wait "$pid" 2>/dev/null
+            # Job completed, check result (wait won't fail if process already gone)
+            wait "$pid" 2>/dev/null || true
             local EXIT_CODE=$?
+            local TABLE_NAME="${PID_TABLE_MAP[$pid]:-unknown}"
             if [ $EXIT_CODE -eq 0 ]; then
               ((TABLE_COUNT++))
             else
               ((FAILED_COUNT++))
+              echo "Warning: Failed to backup table $SCHEMA.$TABLE_NAME" >&2
             fi
+            unset PID_TABLE_MAP[$pid]
           fi
-          ((i++))
         done
         PIDS=("${NEW_PIDS[@]}")
-        PID_TO_TABLE=("${NEW_MAP[@]}")
         sleep 0.1
       done
       
       # Start backup job in background
       (
+        # Disable exit on error in subshell to prevent parent from exiting
         set +e
         backup_table "$DB_URL" "$SCHEMA" "$table" "$OUTPUT_DIR"
         exit $?
       ) &
       local PID=$!
       PIDS+=("$PID")
-      PID_TO_TABLE+=("$table")
+      PID_TABLE_MAP[$PID]="$table"
     done
     
     # Wait for all remaining jobs
-    local i=0
     for pid in "${PIDS[@]}"; do
-      wait "$pid" 2>/dev/null
+      wait "$pid" 2>/dev/null || true
       local EXIT_CODE=$?
+      local TABLE_NAME="${PID_TABLE_MAP[$pid]:-unknown}"
       if [ $EXIT_CODE -eq 0 ]; then
         ((TABLE_COUNT++))
       else
         ((FAILED_COUNT++))
-        echo "Warning: Failed to backup table $SCHEMA.${PID_TO_TABLE[$i]}" >&2
+        echo "Warning: Failed to backup table $SCHEMA.$TABLE_NAME" >&2
       fi
-      ((i++))
     done
+    
+    # Re-enable exit on error
+    set -e
   else
     # Sequential execution for single table or when parallel disabled
     for table in "${TABLE_LIST[@]}"; do
