@@ -144,20 +144,31 @@ jobs:
         id: backup-schemas
         env:
           BACKUP_MAX_PARALLEL: 8 # Number of parallel table backups per schema
+          GLOBAL_MAX_CONNECTIONS: 15 # Total concurrent database connections across all schemas (conservative to avoid Supabase limits)
         run: |
           set +e  # Disable exit on error for parallel execution
           START_TIME=$(date +%s)
+          source .github/scripts/common.sh
           source .github/scripts/backup.sh
           set +e  # Re-disable exit on error after sourcing (backup.sh sets -e)
+
+          # Initialize global connection semaphore to limit total concurrent connections
+          # Use a fixed semaphore directory that all background jobs can access
+          export GLOBAL_SEMAPHORE_DIR="/tmp/backup_semaphore_$$"
+          export GLOBAL_MAX_CONNECTIONS="${GLOBAL_MAX_CONNECTIONS:-15}"
+          init_global_semaphore
+          trap "cleanup_global_semaphore" EXIT
+
           SCHEMAS="${{ steps.detect-schemas.outputs.schemas }}"
 
           if [ -z "$SCHEMAS" ]; then
             echo "No schemas detected. Exiting."
+            cleanup_global_semaphore
             exit 0
           fi
 
           # Backup schemas in parallel for better performance
-          # Run all schemas in parallel for maximum speed
+          # Run all schemas in parallel - connection semaphore will limit total connections
           SCHEMA_COUNT=0
           SCHEMA_PIDS=()
 
@@ -182,6 +193,10 @@ jobs:
           done
 
           echo "Completed backup for $SCHEMA_COUNT schema(s)"
+
+          # Cleanup semaphore
+          cleanup_global_semaphore
+          trap - EXIT
 
           END_TIME=$(date +%s)
           echo "start_time=$START_TIME" >> $GITHUB_OUTPUT

@@ -66,3 +66,73 @@ url_decode() {
   encoded="${encoded//%25/%}"
   echo "$encoded"
 }
+
+# Global connection semaphore for coordinating database connections across all schemas
+# Uses file-based locking to limit total concurrent connections
+GLOBAL_SEMAPHORE_DIR="${GLOBAL_SEMAPHORE_DIR:-/tmp/backup_semaphore_$$}"
+GLOBAL_MAX_CONNECTIONS="${GLOBAL_MAX_CONNECTIONS:-20}"  # Total concurrent connections across all schemas
+
+# Initialize global semaphore
+init_global_semaphore() {
+  mkdir -p "$GLOBAL_SEMAPHORE_DIR"
+  # Create semaphore slots directory (slots are created on-demand)
+  touch "$GLOBAL_SEMAPHORE_DIR/.initialized"
+}
+
+# Acquire a connection slot (blocking)
+# Uses atomic file operations to coordinate across processes
+acquire_connection_slot() {
+  local max_wait=300  # Maximum wait time in seconds (5 minutes)
+  local waited=0
+  local slot_num=0
+  
+  while [ $waited -lt $max_wait ]; do
+    # Try each slot
+    slot_num=0
+    while [ $slot_num -lt $GLOBAL_MAX_CONNECTIONS ]; do
+      local slot_file="$GLOBAL_SEMAPHORE_DIR/slot_${slot_num}"
+      
+      # Try to create lock file atomically (set -C creates file only if it doesn't exist)
+      if (set -C; echo $$ > "$slot_file.lock" 2>/dev/null); then
+        # Successfully acquired lock - slot is ours
+        echo "$slot_file"
+        return 0
+      fi
+      
+      # Check if the process that holds the lock is still alive
+      if [ -f "$slot_file.lock" ]; then
+        local lock_pid=$(cat "$slot_file.lock" 2>/dev/null || echo "")
+        if [ -n "$lock_pid" ] && ! kill -0 "$lock_pid" 2>/dev/null; then
+          # Process is dead, clean up and try to acquire
+          rm -f "$slot_file.lock" 2>/dev/null
+          if (set -C; echo $$ > "$slot_file.lock" 2>/dev/null); then
+            echo "$slot_file"
+            return 0
+          fi
+        fi
+      fi
+      
+      ((slot_num++))
+    done
+    
+    # No slot available, wait a bit
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+  
+  echo "Error: Timeout waiting for connection slot after ${max_wait}s" >&2
+  return 1
+}
+
+# Release a connection slot
+release_connection_slot() {
+  local slot_file="${1:-}"
+  [ -z "$slot_file" ] && return 1
+  # Remove lock file to free the slot
+  rm -f "$slot_file.lock" 2>/dev/null
+}
+
+# Cleanup semaphore directory
+cleanup_global_semaphore() {
+  [ -d "$GLOBAL_SEMAPHORE_DIR" ] && rm -rf "$GLOBAL_SEMAPHORE_DIR" 2>/dev/null
+}

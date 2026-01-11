@@ -53,6 +53,7 @@ backup_roles() {
 
 # Backup a single table (schema and data) - Optimized version
 # Uses optimized pg_dump flags for better performance
+# Uses global connection semaphore to limit total concurrent connections
 backup_table() {
   local DB_URL="${1:-}"
   local SCHEMA="${2:-}"
@@ -64,6 +65,16 @@ backup_table() {
     return 1
   }
 
+  # Acquire connection slot before making database connections
+  local SLOT_FILE=$(acquire_connection_slot)
+  if [ $? -ne 0 ] || [ -z "$SLOT_FILE" ]; then
+    echo "Error: Failed to acquire connection slot for $SCHEMA.$TABLE" >&2
+    return 1
+  fi
+
+  # Ensure slot is released on exit
+  trap "release_connection_slot '$SLOT_FILE'" EXIT
+
   DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
   local TABLE_DIR="$OUTPUT_DIR/$SCHEMA/tables/$TABLE"
   mkdir -p "$TABLE_DIR"
@@ -73,12 +84,33 @@ backup_table() {
 
   # Backup schema with optimized flags
   # --no-sync: Skip fsync for faster writes (safe for backups)
-  # --compress=6: Balanced compression (faster than default 9)
   echo "Backing up structure for table: $SCHEMA.$TABLE"
-  if ! $PG_DUMP "$DB_URL" --table="$SCHEMA.$TABLE" \
-    --schema-only --no-owner --no-privileges --no-tablespaces \
-    --no-sync \
-    > "$TABLE_DIR/schema.sql" 2> "$ERROR_FILE"; then
+  
+  # Retry logic for connection limit errors
+  local retry_count=0
+  local max_retries=3
+  local retry_delay=2
+  
+  while [ $retry_count -lt $max_retries ]; do
+    if $PG_DUMP "$DB_URL" --table="$SCHEMA.$TABLE" \
+      --schema-only --no-owner --no-privileges --no-tablespaces \
+      --no-sync \
+      > "$TABLE_DIR/schema.sql" 2> "$ERROR_FILE"; then
+      break  # Success
+    fi
+    
+    # Check if it's a connection limit error
+    if [ -s "$ERROR_FILE" ] && grep -qiE "(Max client connections|MaxClientsInSessionMode)" "$ERROR_FILE"; then
+      ((retry_count++))
+      if [ $retry_count -lt $max_retries ]; then
+        echo "Connection limit reached, retrying ($retry_count/$max_retries) after ${retry_delay}s..." >&2
+        sleep $retry_delay
+        retry_delay=$((retry_delay * 2))  # Exponential backoff
+        continue
+      fi
+    fi
+    
+    # Not a retryable error or max retries reached
     echo "Error: Failed to backup schema for $SCHEMA.$TABLE" >&2
     if [ -s "$ERROR_FILE" ]; then
       echo "pg_dump error:" >&2
@@ -88,21 +120,49 @@ backup_table() {
         echo "Note: This might be a system table, view, or materialized view that cannot be dumped" >&2
         echo "Skipping this table and continuing..." >&2
         rm -f "$ERROR_FILE" "$TABLE_DIR/schema.sql" 2>/dev/null
+        release_connection_slot "$SLOT_FILE"
+        trap - EXIT
         return 1
       fi
     else
       echo "No error details available" >&2
     fi
     rm -f "$ERROR_FILE"
+    release_connection_slot "$SLOT_FILE"
+    trap - EXIT
     return 1
-  fi
+  done
+  
+  # If we get here, schema backup succeeded
 
   # Backup data with optimized flags (uses COPY format by default for faster export)
   echo "Backing up data for table: $SCHEMA.$TABLE"
-  if ! $PG_DUMP "$DB_URL" --table="$SCHEMA.$TABLE" \
-    --data-only --no-owner --no-privileges --no-tablespaces \
-    --no-sync \
-    > "$TABLE_DIR/data.sql" 2> "$ERROR_FILE"; then
+  
+  # Retry logic for connection limit errors
+  retry_count=0
+  max_retries=3
+  retry_delay=2
+  
+  while [ $retry_count -lt $max_retries ]; do
+    if $PG_DUMP "$DB_URL" --table="$SCHEMA.$TABLE" \
+      --data-only --no-owner --no-privileges --no-tablespaces \
+      --no-sync \
+      > "$TABLE_DIR/data.sql" 2> "$ERROR_FILE"; then
+      break  # Success
+    fi
+    
+    # Check if it's a connection limit error
+    if [ -s "$ERROR_FILE" ] && grep -qiE "(Max client connections|MaxClientsInSessionMode)" "$ERROR_FILE"; then
+      ((retry_count++))
+      if [ $retry_count -lt $max_retries ]; then
+        echo "Connection limit reached, retrying ($retry_count/$max_retries) after ${retry_delay}s..." >&2
+        sleep $retry_delay
+        retry_delay=$((retry_delay * 2))  # Exponential backoff
+        continue
+      fi
+    fi
+    
+    # Not a retryable error or max retries reached
     echo "Error: Failed to backup data for $SCHEMA.$TABLE" >&2
     if [ -s "$ERROR_FILE" ]; then
       echo "pg_dump error:" >&2
@@ -112,20 +172,30 @@ backup_table() {
         echo "Note: This might be a system table, view, or materialized view that cannot be dumped" >&2
         echo "Skipping this table and continuing..." >&2
         rm -f "$ERROR_FILE" "$TABLE_DIR/data.sql" "$TABLE_DIR/schema.sql" 2>/dev/null
+        release_connection_slot "$SLOT_FILE"
+        trap - EXIT
         return 1
       fi
     else
       echo "No error details available" >&2
     fi
     rm -f "$ERROR_FILE"
+    release_connection_slot "$SLOT_FILE"
+    trap - EXIT
     return 1
-  fi
+  done
 
   rm -f "$ERROR_FILE"
   [ ! -f "$TABLE_DIR/schema.sql" ] || [ ! -f "$TABLE_DIR/data.sql" ] && {
     echo "Error: Backup files not created for $SCHEMA.$TABLE" >&2
+    release_connection_slot "$SLOT_FILE"
+    trap - EXIT
     return 1
   }
+
+  # Release connection slot
+  release_connection_slot "$SLOT_FILE"
+  trap - EXIT
 
   echo "Successfully backed up table: $SCHEMA.$TABLE"
 }
