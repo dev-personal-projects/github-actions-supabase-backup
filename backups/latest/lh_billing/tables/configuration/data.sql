@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict GgOjfefIcr1QrbmS7ET3UPH4tDPSPXO32gnh9xDPr1pK7Jf3Qh1RDDoFwfBDml6
+\restrict iTXoae84osH0HIveKP525QGTC60PHdarU7Reg34CB9KY16Mraby5DxetBbXKIgR
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -48,5 +48,5 @@ SELECT pg_catalog.setval('lh_billing.configuration_configuration_id_seq', 10, tr
 -- PostgreSQL database dump complete
 --
 
-\unrestrict GgOjfefIcr1QrbmS7ET3UPH4tDPSPXO32gnh9xDPr1pK7Jf3Qh1RDDoFwfBDml6
+\unrestrict iTXoae84osH0HIveKP525QGTC60PHdarU7Reg34CB9KY16Mraby5DxetBbXKIgR
 

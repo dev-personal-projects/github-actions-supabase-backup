@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict BBTN3AjvklrDteVM1tM1zkCvz3LUj1bQ7Ja4KagwflbtjEqUhyHFgX3qaf8lqBf
+\restrict fnqLaS0aOcElHKT3DkVKqhVBQgiA7UGnAHfqXIUIMUemFtif9wIHzgrRgyXDKZ3
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -132,5 +132,5 @@ ALTER TABLE lh_billing.tax_rates ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict BBTN3AjvklrDteVM1tM1zkCvz3LUj1bQ7Ja4KagwflbtjEqUhyHFgX3qaf8lqBf
+\unrestrict fnqLaS0aOcElHKT3DkVKqhVBQgiA7UGnAHfqXIUIMUemFtif9wIHzgrRgyXDKZ3
 

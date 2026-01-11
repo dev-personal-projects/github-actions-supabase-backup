@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict badyAs5ZfTr5NqdHslqZ20FduhqgFBqBWHfRxevdYDdOI586Hc5hF5Px9dHkHjk
+\restrict BhPUOOtjVs5exRCmYbUXQYaUVEDPo8oU9MAH9uahrw3O8hCCDMmSHpmemcWaNAK
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -40,5 +40,5 @@ SELECT pg_catalog.setval('lh_billing.charge_types_charge_type_id_seq', 2, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict badyAs5ZfTr5NqdHslqZ20FduhqgFBqBWHfRxevdYDdOI586Hc5hF5Px9dHkHjk
+\unrestrict BhPUOOtjVs5exRCmYbUXQYaUVEDPo8oU9MAH9uahrw3O8hCCDMmSHpmemcWaNAK
 

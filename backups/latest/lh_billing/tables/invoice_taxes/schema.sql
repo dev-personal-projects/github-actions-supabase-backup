@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict fNme302UjawLYoow3vEnemrMJhuMfYzEYyPxRmOsfKGaA7zFBN6tmm6KUSx5DYZ
+\restrict mon1uSxHgeqIwUq04swS9uvJXePYYmdqOcn6vGwMmtd1YNsj1wJLifVepg8lQ1s
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -116,5 +116,5 @@ ALTER TABLE lh_billing.invoice_taxes ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict fNme302UjawLYoow3vEnemrMJhuMfYzEYyPxRmOsfKGaA7zFBN6tmm6KUSx5DYZ
+\unrestrict mon1uSxHgeqIwUq04swS9uvJXePYYmdqOcn6vGwMmtd1YNsj1wJLifVepg8lQ1s
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict XDFqfgi6dduEnz9qlfZ24hdGdet0wsTXtebKXcP5YM8MiVcaiNLAnjqqwFP9YIP
+\restrict cCDXDEFLExhS5WQjxhG1dy6AkoyolYAetgTKnZpcJaFGE4Db9tfNEmrVC3ys3j6
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -128,5 +128,5 @@ ALTER TABLE lh_payproof.configuration ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict XDFqfgi6dduEnz9qlfZ24hdGdet0wsTXtebKXcP5YM8MiVcaiNLAnjqqwFP9YIP
+\unrestrict cCDXDEFLExhS5WQjxhG1dy6AkoyolYAetgTKnZpcJaFGE4Db9tfNEmrVC3ys3j6
 

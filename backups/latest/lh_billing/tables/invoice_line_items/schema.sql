@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict SQRA0XmQKU9msfZ1o0m32LgRAkZyCWNRrtq9rfAjRcR5QRh4Xagjbwe4uTE11pR
+\restrict Y9X1aOUMaFcJDpSweW9rNckHbw4MJYoZ9N7fg9YaXNdVTBMFslRaf8tx7enUFe9
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -178,5 +178,5 @@ ALTER TABLE lh_billing.invoice_line_items ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict SQRA0XmQKU9msfZ1o0m32LgRAkZyCWNRrtq9rfAjRcR5QRh4Xagjbwe4uTE11pR
+\unrestrict Y9X1aOUMaFcJDpSweW9rNckHbw4MJYoZ9N7fg9YaXNdVTBMFslRaf8tx7enUFe9
 

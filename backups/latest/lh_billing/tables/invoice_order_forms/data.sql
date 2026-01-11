@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 0yA9WAaItedNkluHj5L3j3aCTTeg1rVFO98qOWp9kQsO8afCbFFjRzW8YwxGUbf
+\restrict fdRJy4N7Z7EQNcTFDgcekDgb06jAqaqtffyhdfuVqhTLWtu4uAXdqsHV25UCSIW
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -38,5 +38,5 @@ SELECT pg_catalog.setval('lh_billing.invoice_order_forms_invoice_order_form_id_s
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 0yA9WAaItedNkluHj5L3j3aCTTeg1rVFO98qOWp9kQsO8afCbFFjRzW8YwxGUbf
+\unrestrict fdRJy4N7Z7EQNcTFDgcekDgb06jAqaqtffyhdfuVqhTLWtu4uAXdqsHV25UCSIW
 

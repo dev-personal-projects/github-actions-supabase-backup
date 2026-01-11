@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Gf3XMfJ0IcTLr1vGj9sjaFazBd2GU5587qMvKCAb8518fyvfbeEJ4IKWWPbG9Ei
+\restrict 0Dm5Ze2k7G4rzuoh2fo5wemhHpI4mO7uqqB1PJrWFf7izr17suObF2FshouSSp2
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -109,5 +109,5 @@ ALTER TABLE lh_payproof.primary_approvers ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Gf3XMfJ0IcTLr1vGj9sjaFazBd2GU5587qMvKCAb8518fyvfbeEJ4IKWWPbG9Ei
+\unrestrict 0Dm5Ze2k7G4rzuoh2fo5wemhHpI4mO7uqqB1PJrWFf7izr17suObF2FshouSSp2
 

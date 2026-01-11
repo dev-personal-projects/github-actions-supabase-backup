@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict b0PUtWxnhUvN5gU1nwARkAzvlK40YjkAbNnNXYCZ2uOeeph8gFhcMqXRibBnDdV
+\restrict He0ONy2Qw2q0y4fgIgl9sdYLBhczh39L8mMwuKC3WGbJ0FxWMs7KrrJexnBeEdx
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -103,5 +103,5 @@ ALTER TABLE lh_billing.charge_types ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict b0PUtWxnhUvN5gU1nwARkAzvlK40YjkAbNnNXYCZ2uOeeph8gFhcMqXRibBnDdV
+\unrestrict He0ONy2Qw2q0y4fgIgl9sdYLBhczh39L8mMwuKC3WGbJ0FxWMs7KrrJexnBeEdx
 
