@@ -55,7 +55,7 @@ jobs:
         if: env.BACKUP_ENABLED == 'true'
         run: |
           chmod +x .github/scripts/*.sh
-          mkdir -p "$BACKUP_DIR/archive"
+          mkdir -p "$BACKUP_DIR/latest" "$BACKUP_DIR/archive"
 
       - name: Generate backup timestamp
         if: env.BACKUP_ENABLED == 'true'
@@ -151,10 +151,13 @@ jobs:
           TRIGGER_EVENT="${{ github.event_name }}"
           COMMIT_SHA="${{ github.sha }}"
 
-          # Find existing latest_{timestamp} folder to archive
+          # Ensure latest directory exists
+          mkdir -p "$BACKUP_DIR/latest"
+
+          # Find existing latest_{timestamp} folder inside latest/ to archive
           OLD_LATEST=""
-          if [ -d "$BACKUP_DIR" ]; then
-            OLD_LATEST=$(find "$BACKUP_DIR" -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
+          if [ -d "$BACKUP_DIR/latest" ]; then
+            OLD_LATEST=$(find "$BACKUP_DIR/latest" -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
           fi
 
           # If old latest exists, move it to archive
@@ -183,21 +186,21 @@ jobs:
             echo "Archived previous latest: $OLD_LATEST_NAME → archive/$ARCHIVE_NAME"
           fi
 
-          # Create new timestamped latest folder for this backup
+          # Create new timestamped latest folder inside latest/ for this backup
           LATEST_NAME="latest_${BACKUP_TIMESTAMP}"
-          LATEST_PATH="$BACKUP_DIR/$LATEST_NAME"
+          LATEST_PATH="$BACKUP_DIR/latest/$LATEST_NAME"
           mkdir -p "$LATEST_PATH"
 
           # Remove any remaining old latest folders (cleanup)
-          if [ -d "$BACKUP_DIR" ]; then
-            for old_latest in "$BACKUP_DIR"/latest_*; do
+          if [ -d "$BACKUP_DIR/latest" ]; then
+            for old_latest in "$BACKUP_DIR/latest"/latest_*; do
               [ -d "$old_latest" ] && [ "$old_latest" != "$LATEST_PATH" ] && rm -rf "$old_latest"
             done
           fi
 
-          # Create symlink for convenience
-          rm -f "$BACKUP_DIR/latest"
-          ln -sf "$LATEST_NAME" "$BACKUP_DIR/latest" 2>/dev/null || {
+          # Create symlink for convenience (latest/latest → latest/latest_{timestamp})
+          rm -f "$BACKUP_DIR/latest/latest"
+          ln -sf "$LATEST_NAME" "$BACKUP_DIR/latest/latest" 2>/dev/null || {
             echo "Note: Could not create 'latest' symlink (Git limitation)" >&2
           }
 

@@ -5,9 +5,10 @@
 This document defines the strategy for implementing timestamped backups to uniquely identify and differentiate between different backup runs. Every backup will have clear timestamp identification via archive folder names, enabling reliable restoration from any specific point in time.
 
 **Current State:**
-- `backups/latest/` - Always overwritten, no timestamp identification
-- `backups/archive/` - Has timestamped folders with format: `{timestamp}--{source-repo}--{trigger-event}--{short-sha}/`
+- `backups/latest/latest_{timestamp}/` - Timestamped latest backups stored inside `latest/` folder
+- `backups/archive/` - Has timestamped folders with format: `{timestamp}--{source-repo}--{trigger-event}--{short-sha}/` (previous latest moved here)
 - Per-table structure: `{schema}/tables/{table-name}/schema.sql` and `data.sql`
+- Automatic archiving: Previous `latest_{timestamp}` automatically moved to archive when new backup starts
 
 **Goal:**
 - Every backup should have clear timestamp identification
@@ -40,18 +41,20 @@ This document defines the strategy for implementing timestamped backups to uniqu
 
 ```
 backups/
-├── latest/                                    # Latest backup (always most recent)
-│   ├── roles.sql
-│   ├── public/
-│   │   └── tables/
-│   │       ├── users/
-│   │       │   ├── schema.sql
-│   │       │   └── data.sql
-│   │       └── orders/
-│   └── auth/
-│       └── tables/
-└── archive/                                   # Historical backups (timestamped)
-    ├── 2024-01-15T14-30-45Z--myorg/repo--push--abc1234/
+├── latest/                                    # Latest backups container
+│   ├── latest → latest_2024-01-15T14-30-45Z/  # Symlink to most recent
+│   └── latest_2024-01-15T14-30-45Z/          # Current timestamped latest
+│       ├── roles.sql
+│       ├── public/
+│       │   └── tables/
+│       │       ├── users/
+│       │       │   ├── schema.sql
+│       │       │   └── data.sql
+│       │       └── orders/
+│       └── auth/
+│           └── tables/
+└── archive/                                   # Historical backups (previous latest moved here)
+    ├── 2024-01-15T14-30-45Z--myorg-repo--push--abc1234/  # Previous latest
     │   ├── roles.sql
     │   ├── public/
     │   │   └── tables/
@@ -61,7 +64,7 @@ backups/
     │   │       └── orders/
     │   └── auth/
     │       └── tables/
-    └── 2024-01-15T18-20-10Z--myorg/repo--schedule--def5678/
+    └── 2024-01-15T18-20-10Z--myorg-repo--schedule--def5678/
         ├── roles.sql
         ├── public/
         │   └── tables/

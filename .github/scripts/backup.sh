@@ -438,11 +438,11 @@ print_backup_summary() {
   local BACKUP_LOCATION=""
   if [ -n "$ARCHIVE_NAME" ] && [ -d "$BACKUP_DIR/archive/$ARCHIVE_NAME" ]; then
     BACKUP_LOCATION="$BACKUP_DIR/archive/$ARCHIVE_NAME"
+  elif [ -n "$LATEST_NAME" ] && [ -d "$BACKUP_DIR/latest/$LATEST_NAME" ]; then
+    BACKUP_LOCATION="$BACKUP_DIR/latest/$LATEST_NAME"
   elif [ -d "$BACKUP_DIR/latest" ]; then
-    BACKUP_LOCATION="$BACKUP_DIR/latest"
-  else
-    # Try to find latest_* folder
-    local latest_folder=$(find "$BACKUP_DIR" -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
+    # Try to find latest_* folder inside latest/
+    local latest_folder=$(find "$BACKUP_DIR/latest" -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
     [ -n "$latest_folder" ] && BACKUP_LOCATION="$latest_folder"
   fi
   
@@ -464,7 +464,7 @@ print_backup_summary() {
       [ ! -d "$schema_dir" ] && continue
       
       local schema=$(basename "$schema_dir")
-      [ "$schema" = "latest" ] && continue
+      [ "$schema" = "latest" ] || [ "$schema" = "archive" ] && continue
       
       SCHEMA_COUNT=$((SCHEMA_COUNT + 1))
       
@@ -503,7 +503,7 @@ print_backup_summary() {
       SCHEMA_DETAILS="${SCHEMA_DETAILS}
     - Total schema size: $(numfmt --to=iec-i --suffix=B "$schema_total" 2>/dev/null || echo "0B")"
       
-    done <<< "$(find "$BACKUP_LOCATION" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)"
+    done <<< "$(find "$BACKUP_LOCATION" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | grep -v "^$BACKUP_LOCATION/latest$" | grep -v "^$BACKUP_LOCATION/archive$")"
   fi
   
   # Calculate backup speed if duration > 0
@@ -562,8 +562,8 @@ EOF
 EOF
     if [ -n "$LATEST_NAME" ]; then
       cat <<EOF
-   Latest (Timestamped): ${BACKUP_DIR}/${LATEST_NAME}
-   Latest Symlink:       ${BACKUP_DIR}/latest → ${LATEST_NAME}
+   Latest (Timestamped): ${BACKUP_DIR}/latest/${LATEST_NAME}
+   Latest Symlink:       ${BACKUP_DIR}/latest/latest → ${LATEST_NAME}
 EOF
     else
       cat <<EOF
