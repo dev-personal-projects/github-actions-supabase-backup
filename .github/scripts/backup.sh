@@ -155,7 +155,9 @@ backup_schema() {
   done <<< "$TABLES"
   
   local TOTAL_TABLES=${#TABLE_LIST[@]}
-  local MAX_PARALLEL=${BACKUP_MAX_PARALLEL:-4}  # Default to 4 parallel jobs
+  # Increased default parallelism for faster backups
+  # Can be overridden via BACKUP_MAX_PARALLEL environment variable
+  local MAX_PARALLEL=${BACKUP_MAX_PARALLEL:-8}  # Default to 8 parallel jobs per schema
   local TABLE_COUNT=0
   local FAILED_COUNT=0
   

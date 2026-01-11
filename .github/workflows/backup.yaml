@@ -142,6 +142,8 @@ jobs:
       - name: Backup schemas and tables
         if: env.BACKUP_ENABLED == 'true'
         id: backup-schemas
+        env:
+          BACKUP_MAX_PARALLEL: 8 # Number of parallel table backups per schema
         run: |
           set +e  # Disable exit on error for parallel execution
           START_TIME=$(date +%s)
@@ -155,29 +157,15 @@ jobs:
           fi
 
           # Backup schemas in parallel for better performance
-          # Use background jobs to parallelize schema backups
+          # Run all schemas in parallel for maximum speed
           SCHEMA_COUNT=0
           SCHEMA_PIDS=()
-          MAX_SCHEMA_PARALLEL=2  # Run 2 schemas in parallel
 
+          # Start all schema backups in parallel
           for schema in $SCHEMAS; do
             [ -z "$schema" ] && continue
             
-            # Wait if we've reached max parallel schemas
-            while [ ${#SCHEMA_PIDS[@]} -ge $MAX_SCHEMA_PARALLEL ]; do
-              NEW_PIDS=()
-              for pid in "${SCHEMA_PIDS[@]}"; do
-                if kill -0 "$pid" 2>/dev/null; then
-                  NEW_PIDS+=("$pid")
-                else
-                  wait "$pid" 2>/dev/null || true
-                fi
-              done
-              SCHEMA_PIDS=("${NEW_PIDS[@]}")
-              sleep 0.1
-            done
-            
-            # Start schema backup in background
+            # Start schema backup in background (all at once)
             (
               set +e
               backup_schema "$SUPABASE_DB_URL" "$schema" "$BACKUP_DIR/latest" || {
