@@ -97,7 +97,7 @@ normalize_connection_string() {
     local PARAMS="${BASH_REMATCH[6]}"
     
     # Check if password needs encoding (contains special chars but not already encoded)
-    if [[ "$PASS" =~ [@:/# ] && "$PASS" != *"%"* ]]; then
+    if [[ "$PASS" =~ [@:/#\ ] ]] && [[ "$PASS" != *"%"* ]]; then
       # Password contains special characters but isn't encoded - encode it
       PASS=$(url_encode "$PASS")
       DB_URL="postgresql://${USER}:${PASS}@${HOST}:${PORT}/${DB}${PARAMS}"
