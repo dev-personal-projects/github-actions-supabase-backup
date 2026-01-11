@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict lHh6Qfjg10yzgwFyakAUKFDiqHp1qLe5EmEkGbJJeeOl0nq2jWAfYkQ62Iu3glu
+\restrict 27lxE2zBr2DBmi7rTEuru257CXw19aF1dHMOUJGGeA7vbjPjVVMBwGS167A3wf5
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -37,5 +37,5 @@ COPY auth.users (instance_id, id, aud, role, email, encrypted_password, email_co
 -- PostgreSQL database dump complete
 --
 
-\unrestrict lHh6Qfjg10yzgwFyakAUKFDiqHp1qLe5EmEkGbJJeeOl0nq2jWAfYkQ62Iu3glu
+\unrestrict 27lxE2zBr2DBmi7rTEuru257CXw19aF1dHMOUJGGeA7vbjPjVVMBwGS167A3wf5
 

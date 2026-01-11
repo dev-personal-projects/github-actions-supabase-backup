@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict YGsK4U4p409i2oVpOLer3yDS2VYYogSw8mnOt0WUK8PItozwC3qXG1IAOaChvDD
+\restrict 4KaYQQRg5eAkQh06ra6BzhmCTOrguOFHfB3YemdyXaLSS9SrL9TLUojZSrctw7T
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -38,5 +38,5 @@ SELECT pg_catalog.setval('lh_billing.invoice_charge_items_invoice_charge_item_id
 -- PostgreSQL database dump complete
 --
 
-\unrestrict YGsK4U4p409i2oVpOLer3yDS2VYYogSw8mnOt0WUK8PItozwC3qXG1IAOaChvDD
+\unrestrict 4KaYQQRg5eAkQh06ra6BzhmCTOrguOFHfB3YemdyXaLSS9SrL9TLUojZSrctw7T
 

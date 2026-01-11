@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict FN3W0YpTTAKbocrbZVWGseQzXfDZaqgEmkNeKI29PWyETAlFNjso6maPe4OAZfp
+\restrict y8Wxf540wyuoLD4lSZQLuaJL5BGxK1aCXZ5GgWyT3d2ilA6Tv1xBZNkI6un4qmp
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -111,5 +111,5 @@ ALTER TABLE lh_system.lh_configuration ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict FN3W0YpTTAKbocrbZVWGseQzXfDZaqgEmkNeKI29PWyETAlFNjso6maPe4OAZfp
+\unrestrict y8Wxf540wyuoLD4lSZQLuaJL5BGxK1aCXZ5GgWyT3d2ilA6Tv1xBZNkI6un4qmp
 

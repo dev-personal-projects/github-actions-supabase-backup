@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LeUcePqZOwPE6hNKqpWXO61GzRjQev8dQSdiLwjQYgGSPbYRaioZ0gLWlwQOUn6
+\restrict GbqF6jsQ7paVUtnMZL4FwiXE68TSEZVYRId02i6adrEKtobCyHgja6exOWpPKkf
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -81,5 +81,5 @@ ALTER TABLE storage.prefixes ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LeUcePqZOwPE6hNKqpWXO61GzRjQev8dQSdiLwjQYgGSPbYRaioZ0gLWlwQOUn6
+\unrestrict GbqF6jsQ7paVUtnMZL4FwiXE68TSEZVYRId02i6adrEKtobCyHgja6exOWpPKkf
 

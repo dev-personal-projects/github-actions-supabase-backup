@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict b5pfN3RnLUEW8TLCOMUMowkrr4ZAmqcLLj3J4Iv4dTr43DNI3sYH4HfxdM97oPk
+\restrict MNwYjVitMsSxcHQ5IQ94vO5woncU01hw5yf0lcPdVRS0d6iGSMTOc4fq1Cmthw0
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -42,5 +42,5 @@ SELECT pg_catalog.setval('lh_payproof.secondary_approvers_secondary_approver_id_
 -- PostgreSQL database dump complete
 --
 
-\unrestrict b5pfN3RnLUEW8TLCOMUMowkrr4ZAmqcLLj3J4Iv4dTr43DNI3sYH4HfxdM97oPk
+\unrestrict MNwYjVitMsSxcHQ5IQ94vO5woncU01hw5yf0lcPdVRS0d6iGSMTOc4fq1Cmthw0
 

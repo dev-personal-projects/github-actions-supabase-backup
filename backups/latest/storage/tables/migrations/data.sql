@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict qKw4usFVabrnXyIt2FgONNUg5MsgA6hzPNFoih91IdpuJfdjwp0lPi9DLZ3ylYt
+\restrict 3hBf6lPUJ5MHXfYJh3yXAPp1bH0s7QXd40TVNiwpfLceaoDwThWsgPzA2kb2eS9
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -81,5 +81,5 @@ COPY storage.migrations (id, name, hash, executed_at) FROM stdin;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict qKw4usFVabrnXyIt2FgONNUg5MsgA6hzPNFoih91IdpuJfdjwp0lPi9DLZ3ylYt
+\unrestrict 3hBf6lPUJ5MHXfYJh3yXAPp1bH0s7QXd40TVNiwpfLceaoDwThWsgPzA2kb2eS9
 

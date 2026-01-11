@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict NlqmId6DiUFYeI7Z80gPcWlOVQoAf5R4brFESFLv1x0bsLWTpfkvV8EB784q7qA
+\restrict DXDoSe9EgfQzDpV71uzfnCJNTmTopVxRcV2YRmpeOedt8zlN8ritvtfTHatex7q
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY auth.sso_providers (id, resource_id, created_at, updated_at, disabled) FROM
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NlqmId6DiUFYeI7Z80gPcWlOVQoAf5R4brFESFLv1x0bsLWTpfkvV8EB784q7qA
+\unrestrict DXDoSe9EgfQzDpV71uzfnCJNTmTopVxRcV2YRmpeOedt8zlN8ritvtfTHatex7q
 

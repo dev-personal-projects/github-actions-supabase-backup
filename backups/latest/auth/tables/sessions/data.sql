@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict HFEj9fyR38Wdz9BkUjotWzSUASkay0QYU95Pp4Uv4agJeGPw3nJYQ3bAnK8kB9n
+\restrict 4EPdg2RfvLcbelx3JLN6SuHtP6d38YTH4tHvMJi01oLtmMZNGPmVHbUdj8ujamb
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY auth.sessions (id, user_id, created_at, updated_at, factor_id, aal, not_aft
 -- PostgreSQL database dump complete
 --
 
-\unrestrict HFEj9fyR38Wdz9BkUjotWzSUASkay0QYU95Pp4Uv4agJeGPw3nJYQ3bAnK8kB9n
+\unrestrict 4EPdg2RfvLcbelx3JLN6SuHtP6d38YTH4tHvMJi01oLtmMZNGPmVHbUdj8ujamb
 

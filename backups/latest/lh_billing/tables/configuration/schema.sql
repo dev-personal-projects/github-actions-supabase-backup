@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict OzEJ4qeGAp7G9aDXHaNz2K6fZTbEv25H7eGY9OubSbGcyr1hcbddr42HdZsMoIZ
+\restrict GjhNWoDIbCXOjSjIidJolU3sIM5OelODyWPG4b7mELk1n3hq8l2lYhCPjI7bRsY
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -142,5 +142,5 @@ ALTER TABLE lh_billing.configuration ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict OzEJ4qeGAp7G9aDXHaNz2K6fZTbEv25H7eGY9OubSbGcyr1hcbddr42HdZsMoIZ
+\unrestrict GjhNWoDIbCXOjSjIidJolU3sIM5OelODyWPG4b7mELk1n3hq8l2lYhCPjI7bRsY
 

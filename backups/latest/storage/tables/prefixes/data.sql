@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict WgRjYeLVLviIDIrp30F57Yp5VaalXbroBf3cA20h86AKj8L8ZA6Akx2s1td2Wo4
+\restrict q4bD8LsC0QlQw6ejLfwkAseVZvsnRyAmUtTUjiPpI6YONyFPURm2j3E9X7wHE7Z
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY storage.prefixes (bucket_id, name, created_at, updated_at) FROM stdin;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict WgRjYeLVLviIDIrp30F57Yp5VaalXbroBf3cA20h86AKj8L8ZA6Akx2s1td2Wo4
+\unrestrict q4bD8LsC0QlQw6ejLfwkAseVZvsnRyAmUtTUjiPpI6YONyFPURm2j3E9X7wHE7Z
 

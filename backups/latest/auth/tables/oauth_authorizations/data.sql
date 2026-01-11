@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict kfYbkTYfLrqxfmaD7msDrdk84hepuuNahn06Kq0Ej5Z7ieSQze7ZgPi3fOc7Vr9
+\restrict RftzqpI6RQ4Kkvl811spdLuxtqGL4BqnriRdBFwGTKzAsgECKSCRsnrIf9xbfsi
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY auth.oauth_authorizations (id, authorization_id, client_id, user_id, redire
 -- PostgreSQL database dump complete
 --
 
-\unrestrict kfYbkTYfLrqxfmaD7msDrdk84hepuuNahn06Kq0Ej5Z7ieSQze7ZgPi3fOc7Vr9
+\unrestrict RftzqpI6RQ4Kkvl811spdLuxtqGL4BqnriRdBFwGTKzAsgECKSCRsnrIf9xbfsi
 

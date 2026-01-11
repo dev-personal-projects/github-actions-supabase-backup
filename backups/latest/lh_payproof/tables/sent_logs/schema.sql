@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict HgtAEXX5O73bdxjhnLMHRbSMofzfww4txkiG4AWdBkmK7k1m1bZVnQuHZLKOsMP
+\restrict jQG9bXqGceAaKjOjglYAWBvmhvdHeUiwzifkLPwE1gaaaCYgB1Rs4bepjOEFMvg
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -136,5 +136,5 @@ ALTER TABLE lh_payproof.sent_logs ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict HgtAEXX5O73bdxjhnLMHRbSMofzfww4txkiG4AWdBkmK7k1m1bZVnQuHZLKOsMP
+\unrestrict jQG9bXqGceAaKjOjglYAWBvmhvdHeUiwzifkLPwE1gaaaCYgB1Rs4bepjOEFMvg
 
