@@ -23,6 +23,9 @@ force_ipv4_connection() {
   local DB_URL="$1"
   local RESOLUTION_OUTPUT="${2:-/dev/stderr}"  # Optional: redirect resolution messages
   
+  # Normalize connection string first (ensure password is URL-encoded)
+  DB_URL=$(normalize_connection_string "$DB_URL")
+  
   # Extract components from connection string
   if [[ "$DB_URL" =~ postgresql://([^:]+):([^@]+)@([^:/]+):([0-9]+)/([^?]*)(.*) ]]; then
     local USER="${BASH_REMATCH[1]}"
@@ -55,6 +58,19 @@ force_ipv4_connection() {
   echo "$DB_URL"
 }
 
+# URL encode a string (handles special characters in passwords)
+url_encode() {
+  local raw="$1"
+  # Encode special characters that break PostgreSQL connection strings
+  raw="${raw//@/%40}"
+  raw="${raw//:/%3A}"
+  raw="${raw//\//%2F}"
+  raw="${raw//#/%23}"
+  raw="${raw// /%20}"
+  raw="${raw//%/%25}"  # Must be last to avoid double-encoding
+  echo "$raw"
+}
+
 # URL decode a string
 url_decode() {
   local encoded="$1"
@@ -65,6 +81,30 @@ url_decode() {
   encoded="${encoded//%20/ }"
   encoded="${encoded//%25/%}"
   echo "$encoded"
+}
+
+# Normalize connection string - ensures password is properly URL-encoded
+normalize_connection_string() {
+  local DB_URL="$1"
+  
+  # If already properly formatted (password contains %), assume it's correct
+  if [[ "$DB_URL" =~ postgresql://([^:]+):([^@]+)@([^:/]+):([0-9]+)/([^?]*)(.*) ]]; then
+    local USER="${BASH_REMATCH[1]}"
+    local PASS="${BASH_REMATCH[2]}"
+    local HOST="${BASH_REMATCH[3]}"
+    local PORT="${BASH_REMATCH[4]}"
+    local DB="${BASH_REMATCH[5]}"
+    local PARAMS="${BASH_REMATCH[6]}"
+    
+    # Check if password needs encoding (contains special chars but not already encoded)
+    if [[ "$PASS" =~ [@:/# ] && "$PASS" != *"%"* ]]; then
+      # Password contains special characters but isn't encoded - encode it
+      PASS=$(url_encode "$PASS")
+      DB_URL="postgresql://${USER}:${PASS}@${HOST}:${PORT}/${DB}${PARAMS}"
+    fi
+  fi
+  
+  echo "$DB_URL"
 }
 
 # Global connection semaphore for coordinating database connections across all schemas
