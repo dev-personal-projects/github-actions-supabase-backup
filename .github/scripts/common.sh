@@ -91,31 +91,36 @@ acquire_connection_slot() {
     slot_num=0
     while [ $slot_num -lt $GLOBAL_MAX_CONNECTIONS ]; do
       local slot_file="$GLOBAL_SEMAPHORE_DIR/slot_${slot_num}"
+      local lock_file="$slot_file.lock"
       
-      # Try to create lock file atomically (set -C creates file only if it doesn't exist)
-      if (set -C; echo $$ > "$slot_file.lock" 2>/dev/null); then
+      # First, check if lock file exists and if the process is still alive
+      if [ -f "$lock_file" ]; then
+        local lock_pid=$(cat "$lock_file" 2>/dev/null || echo "")
+        if [ -n "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null; then
+          # Process is alive, slot is taken - try next slot
+          ((slot_num++))
+          continue
+        fi
+        # Process is dead, clean up stale lock
+        rm -f "$lock_file" 2>/dev/null
+      fi
+      
+      # Try to acquire the slot atomically
+      # set -C in subshell: creates file only if it doesn't exist (atomic operation)
+      # Redirect stderr to /dev/null to suppress "cannot overwrite" messages
+      # This is expected behavior when slot is taken
+      if (set -C; echo $$ > "$lock_file") 2>/dev/null; then
         # Successfully acquired lock - slot is ours
         echo "$slot_file"
         return 0
       fi
       
-      # Check if the process that holds the lock is still alive
-      if [ -f "$slot_file.lock" ]; then
-        local lock_pid=$(cat "$slot_file.lock" 2>/dev/null || echo "")
-        if [ -n "$lock_pid" ] && ! kill -0 "$lock_pid" 2>/dev/null; then
-          # Process is dead, clean up and try to acquire
-          rm -f "$slot_file.lock" 2>/dev/null
-          if (set -C; echo $$ > "$slot_file.lock" 2>/dev/null); then
-            echo "$slot_file"
-            return 0
-          fi
-        fi
-      fi
-      
+      # If we get here, another process grabbed the slot between our check and create
+      # This is normal - just try the next slot
       ((slot_num++))
     done
     
-    # No slot available, wait a bit
+    # No slot available, wait a bit before retrying all slots
     sleep 0.1
     waited=$((waited + 1))
   done
