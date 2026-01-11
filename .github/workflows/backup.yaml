@@ -57,6 +57,14 @@ jobs:
           chmod +x .github/scripts/*.sh
           mkdir -p "$BACKUP_DIR/latest" "$BACKUP_DIR/archive"
 
+      - name: Generate backup timestamp
+        if: env.BACKUP_ENABLED == 'true'
+        id: timestamp
+        run: |
+          BACKUP_TIMESTAMP=$(date -u +"%Y-%m-%dT%H-%M-%SZ")
+          echo "timestamp=$BACKUP_TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "Generated backup timestamp: $BACKUP_TIMESTAMP"
+
       - name: Detect schemas
         if: env.BACKUP_ENABLED == 'true'
         id: detect-schemas
@@ -133,11 +141,28 @@ jobs:
             [ -n "$schema" ] && echo "  - $schema"
           done
 
+      - name: Create archive directory
+        if: env.BACKUP_ENABLED == 'true'
+        id: archive
+        run: |
+          source .github/scripts/backup.sh
+          BACKUP_TIMESTAMP="${{ steps.timestamp.outputs.timestamp }}"
+          SOURCE_REPO="${{ github.repository }}"
+          TRIGGER_EVENT="${{ github.event_name }}"
+          COMMIT_SHA="${{ github.sha }}"
+
+          # Create archive directory
+          ARCHIVE_PATH=$(create_archive_directory "$BACKUP_DIR" "$BACKUP_TIMESTAMP" "$SOURCE_REPO" "$TRIGGER_EVENT" "${COMMIT_SHA:0:7}")
+          echo "archive_path=$ARCHIVE_PATH" >> $GITHUB_OUTPUT
+          echo "archive_name=$(basename "$ARCHIVE_PATH")" >> $GITHUB_OUTPUT
+          echo "Created archive directory: $ARCHIVE_PATH"
+
       - name: Backup roles
         if: env.BACKUP_ENABLED == 'true'
         run: |
           source .github/scripts/backup.sh
-          backup_roles "$SUPABASE_DB_URL" "$BACKUP_DIR/latest/roles.sql"
+          ARCHIVE_PATH="${{ steps.archive.outputs.archive_path }}"
+          backup_roles "$SUPABASE_DB_URL" "$ARCHIVE_PATH/roles.sql"
 
       - name: Backup schemas and tables
         if: env.BACKUP_ENABLED == 'true'
@@ -173,6 +198,9 @@ jobs:
           SCHEMA_COUNT=0
           SCHEMA_PIDS=()
 
+          # Get archive path from previous step
+          ARCHIVE_PATH="${{ steps.archive.outputs.archive_path }}"
+
           # Start all schema backups in parallel
           for schema in $SCHEMAS; do
             [ -z "$schema" ] && continue
@@ -180,7 +208,7 @@ jobs:
             # Start schema backup in background (all at once)
             (
               set +e
-              backup_schema "$SUPABASE_DB_URL" "$schema" "$BACKUP_DIR/latest" || {
+              backup_schema "$SUPABASE_DB_URL" "$schema" "$ARCHIVE_PATH" || {
                 echo "Warning: Failed to backup schema $schema" >&2
               }
             ) &
@@ -204,13 +232,33 @@ jobs:
           echo "end_time=$END_TIME" >> $GITHUB_OUTPUT
           set -e  # Re-enable exit on error (after outputs are set)
 
+      - name: Create latest reference
+        if: env.BACKUP_ENABLED == 'true'
+        run: |
+          ARCHIVE_PATH="${{ steps.archive.outputs.archive_path }}"
+          ARCHIVE_NAME="${{ steps.archive.outputs.archive_name }}"
+
+          # Try to create symlink from latest to archive
+          # If symlink fails (Git doesn't handle symlinks well), copy contents
+          rm -rf "$BACKUP_DIR/latest"
+          if ln -sf "archive/$ARCHIVE_NAME" "$BACKUP_DIR/latest" 2>/dev/null; then
+            echo "Created symlink: latest → archive/$ARCHIVE_NAME"
+          else
+            # Fallback: copy contents to latest (Git-friendly)
+            echo "Creating copy in latest/ (symlink not supported)" >&2
+            cp -r "$ARCHIVE_PATH" "$BACKUP_DIR/latest"
+            echo "Copied archive contents to latest/"
+          fi
+
       - name: Generate backup summary
         if: env.BACKUP_ENABLED == 'true'
         run: |
           source .github/scripts/backup.sh
           START_TIME="${{ steps.backup-schemas.outputs.start_time }}"
           END_TIME="${{ steps.backup-schemas.outputs.end_time }}"
-          print_backup_summary "$BACKUP_DIR" "$SUPABASE_DB_URL" "$START_TIME" "$END_TIME"
+          BACKUP_TIMESTAMP="${{ steps.timestamp.outputs.timestamp }}"
+          ARCHIVE_NAME="${{ steps.archive.outputs.archive_name }}"
+          print_backup_summary "$BACKUP_DIR" "$SUPABASE_DB_URL" "$START_TIME" "$END_TIME" "$BACKUP_TIMESTAMP" "$ARCHIVE_NAME"
 
       - name: Commit backups
         if: env.BACKUP_ENABLED == 'true'
