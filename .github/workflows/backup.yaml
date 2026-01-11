@@ -5,7 +5,7 @@ on:
     branches: [main, dev]
   workflow_dispatch:
   schedule:
-    - cron: "35 19 * * *"
+    - cron: "0 12 * * *"
 
 env:
   BACKUP_ENABLED: true
@@ -55,7 +55,7 @@ jobs:
         if: env.BACKUP_ENABLED == 'true'
         run: |
           chmod +x .github/scripts/*.sh
-          mkdir -p "$BACKUP_DIR/latest" "$BACKUP_DIR/archive"
+          mkdir -p "$BACKUP_DIR/archive"
 
       - name: Generate backup timestamp
         if: env.BACKUP_ENABLED == 'true'
@@ -141,9 +141,9 @@ jobs:
             [ -n "$schema" ] && echo "  - $schema"
           done
 
-      - name: Create archive directory
+      - name: Archive previous latest and create new latest
         if: env.BACKUP_ENABLED == 'true'
-        id: archive
+        id: latest-setup
         run: |
           source .github/scripts/backup.sh
           BACKUP_TIMESTAMP="${{ steps.timestamp.outputs.timestamp }}"
@@ -151,18 +151,66 @@ jobs:
           TRIGGER_EVENT="${{ github.event_name }}"
           COMMIT_SHA="${{ github.sha }}"
 
-          # Create archive directory
-          ARCHIVE_PATH=$(create_archive_directory "$BACKUP_DIR" "$BACKUP_TIMESTAMP" "$SOURCE_REPO" "$TRIGGER_EVENT" "${COMMIT_SHA:0:7}")
-          echo "archive_path=$ARCHIVE_PATH" >> $GITHUB_OUTPUT
-          echo "archive_name=$(basename "$ARCHIVE_PATH")" >> $GITHUB_OUTPUT
-          echo "Created archive directory: $ARCHIVE_PATH"
+          # Find existing latest_{timestamp} folder to archive
+          OLD_LATEST=""
+          if [ -d "$BACKUP_DIR" ]; then
+            OLD_LATEST=$(find "$BACKUP_DIR" -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
+          fi
+
+          # If old latest exists, move it to archive
+          if [ -n "$OLD_LATEST" ] && [ -d "$OLD_LATEST" ] && [ -n "$(ls -A "$OLD_LATEST" 2>/dev/null)" ]; then
+            OLD_LATEST_NAME=$(basename "$OLD_LATEST")
+            # Extract timestamp from old latest folder name (format: latest_{timestamp})
+            OLD_TIMESTAMP=$(echo "$OLD_LATEST_NAME" | sed 's/^latest_//')
+            
+            # Create archive name for the old latest backup
+            ARCHIVE_NAME=$(generate_archive_name "$OLD_TIMESTAMP" "$SOURCE_REPO" "$TRIGGER_EVENT" "${COMMIT_SHA:0:7}")
+            ARCHIVE_PATH="$BACKUP_DIR/archive/$ARCHIVE_NAME"
+            
+            # Handle duplicates by appending sequence number
+            COUNTER=2
+            while [ -d "$ARCHIVE_PATH" ] && [ -n "$(ls -A "$ARCHIVE_PATH" 2>/dev/null)" ]; do
+              SANITIZED_REPO=$(echo "$SOURCE_REPO" | tr '/' '-')
+              ARCHIVE_NAME="${OLD_TIMESTAMP}--${SANITIZED_REPO}--${TRIGGER_EVENT}--${COMMIT_SHA:0:7}--${COUNTER}/"
+              ARCHIVE_PATH="$BACKUP_DIR/archive/$ARCHIVE_NAME"
+              COUNTER=$((COUNTER + 1))
+              [ $COUNTER -gt 100 ] && break
+            done
+            
+            # Move old latest to archive
+            mkdir -p "$(dirname "$ARCHIVE_PATH")"
+            mv "$OLD_LATEST" "$ARCHIVE_PATH"
+            echo "Archived previous latest: $OLD_LATEST_NAME → archive/$ARCHIVE_NAME"
+          fi
+
+          # Create new timestamped latest folder for this backup
+          LATEST_NAME="latest_${BACKUP_TIMESTAMP}"
+          LATEST_PATH="$BACKUP_DIR/$LATEST_NAME"
+          mkdir -p "$LATEST_PATH"
+
+          # Remove any remaining old latest folders (cleanup)
+          if [ -d "$BACKUP_DIR" ]; then
+            for old_latest in "$BACKUP_DIR"/latest_*; do
+              [ -d "$old_latest" ] && [ "$old_latest" != "$LATEST_PATH" ] && rm -rf "$old_latest"
+            done
+          fi
+
+          # Create symlink for convenience
+          rm -f "$BACKUP_DIR/latest"
+          ln -sf "$LATEST_NAME" "$BACKUP_DIR/latest" 2>/dev/null || {
+            echo "Note: Could not create 'latest' symlink (Git limitation)" >&2
+          }
+
+          echo "latest_path=$LATEST_PATH" >> $GITHUB_OUTPUT
+          echo "latest_name=$LATEST_NAME" >> $GITHUB_OUTPUT
+          echo "Created new latest folder: $LATEST_NAME"
 
       - name: Backup roles
         if: env.BACKUP_ENABLED == 'true'
         run: |
           source .github/scripts/backup.sh
-          ARCHIVE_PATH="${{ steps.archive.outputs.archive_path }}"
-          backup_roles "$SUPABASE_DB_URL" "$ARCHIVE_PATH/roles.sql"
+          LATEST_PATH="${{ steps.latest-setup.outputs.latest_path }}"
+          backup_roles "$SUPABASE_DB_URL" "$LATEST_PATH/roles.sql"
 
       - name: Backup schemas and tables
         if: env.BACKUP_ENABLED == 'true'
@@ -198,8 +246,8 @@ jobs:
           SCHEMA_COUNT=0
           SCHEMA_PIDS=()
 
-          # Get archive path from previous step
-          ARCHIVE_PATH="${{ steps.archive.outputs.archive_path }}"
+          # Get latest path from previous step
+          LATEST_PATH="${{ steps.latest-setup.outputs.latest_path }}"
 
           # Start all schema backups in parallel
           for schema in $SCHEMAS; do
@@ -208,7 +256,7 @@ jobs:
             # Start schema backup in background (all at once)
             (
               set +e
-              backup_schema "$SUPABASE_DB_URL" "$schema" "$ARCHIVE_PATH" || {
+              backup_schema "$SUPABASE_DB_URL" "$schema" "$LATEST_PATH" || {
                 echo "Warning: Failed to backup schema $schema" >&2
               }
             ) &
@@ -232,24 +280,6 @@ jobs:
           echo "end_time=$END_TIME" >> $GITHUB_OUTPUT
           set -e  # Re-enable exit on error (after outputs are set)
 
-      - name: Create latest reference
-        if: env.BACKUP_ENABLED == 'true'
-        run: |
-          ARCHIVE_PATH="${{ steps.archive.outputs.archive_path }}"
-          ARCHIVE_NAME="${{ steps.archive.outputs.archive_name }}"
-
-          # Try to create symlink from latest to archive
-          # If symlink fails (Git doesn't handle symlinks well), copy contents
-          rm -rf "$BACKUP_DIR/latest"
-          if ln -sf "archive/$ARCHIVE_NAME" "$BACKUP_DIR/latest" 2>/dev/null; then
-            echo "Created symlink: latest → archive/$ARCHIVE_NAME"
-          else
-            # Fallback: copy contents to latest (Git-friendly)
-            echo "Creating copy in latest/ (symlink not supported)" >&2
-            cp -r "$ARCHIVE_PATH" "$BACKUP_DIR/latest"
-            echo "Copied archive contents to latest/"
-          fi
-
       - name: Generate backup summary
         if: env.BACKUP_ENABLED == 'true'
         run: |
@@ -257,8 +287,8 @@ jobs:
           START_TIME="${{ steps.backup-schemas.outputs.start_time }}"
           END_TIME="${{ steps.backup-schemas.outputs.end_time }}"
           BACKUP_TIMESTAMP="${{ steps.timestamp.outputs.timestamp }}"
-          ARCHIVE_NAME="${{ steps.archive.outputs.archive_name }}"
-          print_backup_summary "$BACKUP_DIR" "$SUPABASE_DB_URL" "$START_TIME" "$END_TIME" "$BACKUP_TIMESTAMP" "$ARCHIVE_NAME"
+          LATEST_NAME="${{ steps.latest-setup.outputs.latest_name }}"
+          print_backup_summary "$BACKUP_DIR" "$SUPABASE_DB_URL" "$START_TIME" "$END_TIME" "$BACKUP_TIMESTAMP" "" "$LATEST_NAME"
 
       - name: Commit backups
         if: env.BACKUP_ENABLED == 'true'

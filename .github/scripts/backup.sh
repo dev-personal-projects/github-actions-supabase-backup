@@ -409,6 +409,7 @@ print_backup_summary() {
   local END_TIME="${4:-}"
   local BACKUP_TIMESTAMP="${5:-}"
   local ARCHIVE_NAME="${6:-}"
+  local LATEST_NAME="${7:-}"
   
   [ -z "$BACKUP_DIR" ] && {
     echo "Error: Backup directory is required" >&2
@@ -433,11 +434,22 @@ print_backup_summary() {
   local TOTAL_BACKUP_SIZE=0
   local ROLES_SIZE=0
   
-  # Determine backup location (archive or latest)
-  local BACKUP_LOCATION="$BACKUP_DIR/latest"
+  # Determine backup location (prefer archive, fallback to latest)
+  local BACKUP_LOCATION=""
   if [ -n "$ARCHIVE_NAME" ] && [ -d "$BACKUP_DIR/archive/$ARCHIVE_NAME" ]; then
     BACKUP_LOCATION="$BACKUP_DIR/archive/$ARCHIVE_NAME"
+  elif [ -d "$BACKUP_DIR/latest" ]; then
+    BACKUP_LOCATION="$BACKUP_DIR/latest"
+  else
+    # Try to find latest_* folder
+    local latest_folder=$(find "$BACKUP_DIR" -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
+    [ -n "$latest_folder" ] && BACKUP_LOCATION="$latest_folder"
   fi
+  
+  [ -z "$BACKUP_LOCATION" ] && {
+    echo "Warning: Could not determine backup location" >&2
+    return 1
+  }
   
   # Count roles file size
   if [ -f "$BACKUP_LOCATION/roles.sql" ]; then
@@ -547,8 +559,17 @@ EOF
   if [ -n "$ARCHIVE_NAME" ]; then
     cat <<EOF
    Archive:          ${BACKUP_DIR}/archive/${ARCHIVE_NAME}
-   Latest Symlink:   ${BACKUP_DIR}/latest → archive/${ARCHIVE_NAME}
 EOF
+    if [ -n "$LATEST_NAME" ]; then
+      cat <<EOF
+   Latest (Timestamped): ${BACKUP_DIR}/${LATEST_NAME}
+   Latest Symlink:       ${BACKUP_DIR}/latest → ${LATEST_NAME}
+EOF
+    else
+      cat <<EOF
+   Latest:            ${BACKUP_DIR}/latest
+EOF
+    fi
   else
     cat <<EOF
    Directory:        ${BACKUP_DIR}/latest
