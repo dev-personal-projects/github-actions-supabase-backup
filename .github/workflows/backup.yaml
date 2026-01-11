@@ -142,6 +142,8 @@ jobs:
       - name: Backup schemas and tables
         if: env.BACKUP_ENABLED == 'true'
         id: backup-schemas
+        env:
+          BACKUP_MAX_PARALLEL: 4  # Number of parallel table backups per schema
         run: |
           START_TIME=$(date +%s)
           source .github/scripts/backup.sh
@@ -152,11 +154,45 @@ jobs:
             exit 0
           fi
 
-          while IFS= read -r schema; do
-            [ -n "$schema" ] && backup_schema "$SUPABASE_DB_URL" "$schema" "$BACKUP_DIR/latest" || {
-              echo "Warning: Failed to backup schema $schema, continuing..." >&2
-            }
-          done <<< "$SCHEMAS"
+          # Backup schemas in parallel for better performance
+          # Use background jobs to parallelize schema backups
+          SCHEMA_COUNT=0
+          SCHEMA_PIDS=()
+          MAX_SCHEMA_PARALLEL=2  # Run 2 schemas in parallel
+          
+          for schema in $SCHEMAS; do
+            [ -z "$schema" ] && continue
+            
+            # Wait if we've reached max parallel schemas
+            while [ ${#SCHEMA_PIDS[@]} -ge $MAX_SCHEMA_PARALLEL ]; do
+              NEW_PIDS=()
+              for pid in "${SCHEMA_PIDS[@]}"; do
+                if kill -0 "$pid" 2>/dev/null; then
+                  NEW_PIDS+=("$pid")
+                else
+                  wait "$pid" || echo "Warning: Schema backup job failed" >&2
+                fi
+              done
+              SCHEMA_PIDS=("${NEW_PIDS[@]}")
+              sleep 0.1
+            done
+            
+            # Start schema backup in background
+            (
+              backup_schema "$SUPABASE_DB_URL" "$schema" "$BACKUP_DIR/latest" || {
+                echo "Warning: Failed to backup schema $schema" >&2
+              }
+            ) &
+            SCHEMA_PIDS+=($!)
+            ((SCHEMA_COUNT++))
+          done
+          
+          # Wait for all schema backups to complete
+          for pid in "${SCHEMA_PIDS[@]}"; do
+            wait "$pid" || echo "Warning: Schema backup job failed" >&2
+          done
+          
+          echo "Completed backup for $SCHEMA_COUNT schema(s)"
 
           END_TIME=$(date +%s)
           echo "start_time=$START_TIME" >> $GITHUB_OUTPUT

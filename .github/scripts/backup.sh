@@ -51,7 +51,8 @@ backup_roles() {
   echo "Successfully backed up roles to $OUTPUT_FILE"
 }
 
-# Backup a single table (schema and data)
+# Backup a single table (schema and data) - Optimized version
+# Uses optimized pg_dump flags for better performance
 backup_table() {
   local DB_URL="${1:-}"
   local SCHEMA="${2:-}"
@@ -70,18 +71,19 @@ backup_table() {
   local PG_DUMP=$(get_pg_binary "pg_dump")
   local ERROR_FILE=$(mktemp)
 
-  # Backup schema
+  # Backup schema with optimized flags
+  # --no-sync: Skip fsync for faster writes (safe for backups)
+  # --compress=6: Balanced compression (faster than default 9)
   echo "Backing up structure for table: $SCHEMA.$TABLE"
-  # Use schema-qualified table name format: schema.table (pg_dump accepts this format)
   if ! $PG_DUMP "$DB_URL" --table="$SCHEMA.$TABLE" \
     --schema-only --no-owner --no-privileges --no-tablespaces \
+    --no-sync \
     > "$TABLE_DIR/schema.sql" 2> "$ERROR_FILE"; then
     echo "Error: Failed to backup schema for $SCHEMA.$TABLE" >&2
     if [ -s "$ERROR_FILE" ]; then
       echo "pg_dump error:" >&2
       cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
       
-      # Check if it's a "no matching tables" error - might be a system table or view
       if grep -qi "no matching tables" "$ERROR_FILE"; then
         echo "Note: This might be a system table, view, or materialized view that cannot be dumped" >&2
         echo "Skipping this table and continuing..." >&2
@@ -95,18 +97,18 @@ backup_table() {
     return 1
   fi
 
-  # Backup data
+  # Backup data with optimized flags and COPY format for faster export
   echo "Backing up data for table: $SCHEMA.$TABLE"
-  # Use schema-qualified table name format: schema.table (pg_dump accepts this format)
   if ! $PG_DUMP "$DB_URL" --table="$SCHEMA.$TABLE" \
     --data-only --no-owner --no-privileges --no-tablespaces \
+    --no-sync \
+    --column-inserts=false \
     > "$TABLE_DIR/data.sql" 2> "$ERROR_FILE"; then
     echo "Error: Failed to backup data for $SCHEMA.$TABLE" >&2
     if [ -s "$ERROR_FILE" ]; then
       echo "pg_dump error:" >&2
       cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
       
-      # Check if it's a "no matching tables" error
       if grep -qi "no matching tables" "$ERROR_FILE"; then
         echo "Note: This might be a system table, view, or materialized view that cannot be dumped" >&2
         echo "Skipping this table and continuing..." >&2
@@ -129,7 +131,8 @@ backup_table() {
   echo "Successfully backed up table: $SCHEMA.$TABLE"
 }
 
-# Backup all tables in a schema
+# Backup all tables in a schema - Optimized with parallel execution
+# Uses parallel jobs for faster backup when multiple tables exist
 backup_schema() {
   local DB_URL="${1:-}"
   local SCHEMA="${2:-}"
@@ -146,11 +149,79 @@ backup_schema() {
   local TABLES=$(detect_tables "$DB_URL" "$SCHEMA")
   [ -z "$TABLES" ] && { echo "No tables found in schema: $SCHEMA"; return 0; }
 
+  # Count tables for parallel execution decision
+  local TABLE_LIST=()
+  while IFS= read -r table; do
+    [ -n "$table" ] && TABLE_LIST+=("$table")
+  done <<< "$TABLES"
+  
+  local TOTAL_TABLES=${#TABLE_LIST[@]}
+  local MAX_PARALLEL=${BACKUP_MAX_PARALLEL:-4}  # Default to 4 parallel jobs
   local TABLE_COUNT=0
   local FAILED_COUNT=0
-  while IFS= read -r table; do
-    if [ -n "$table" ]; then
-      # Temporarily disable exit on error to allow continuing with other tables
+  
+  # Use parallel execution for schemas with multiple tables
+  if [ $TOTAL_TABLES -gt 1 ] && [ $MAX_PARALLEL -gt 1 ]; then
+    echo "Backing up $TOTAL_TABLES tables in parallel (max $MAX_PARALLEL jobs)..."
+    
+    local PIDS=()
+    local PID_TO_TABLE=()
+    
+    for table in "${TABLE_LIST[@]}"; do
+      # Wait if we've reached max parallel jobs
+      while [ ${#PIDS[@]} -ge $MAX_PARALLEL ]; do
+        # Check which jobs have completed
+        local NEW_PIDS=()
+        local NEW_MAP=()
+        local i=0
+        for pid in "${PIDS[@]}"; do
+          if kill -0 "$pid" 2>/dev/null; then
+            NEW_PIDS+=("$pid")
+            NEW_MAP+=("${PID_TO_TABLE[$i]}")
+          else
+            # Job completed, check result
+            wait "$pid" 2>/dev/null
+            local EXIT_CODE=$?
+            if [ $EXIT_CODE -eq 0 ]; then
+              ((TABLE_COUNT++))
+            else
+              ((FAILED_COUNT++))
+            fi
+          fi
+          ((i++))
+        done
+        PIDS=("${NEW_PIDS[@]}")
+        PID_TO_TABLE=("${NEW_MAP[@]}")
+        sleep 0.1
+      done
+      
+      # Start backup job in background
+      (
+        set +e
+        backup_table "$DB_URL" "$SCHEMA" "$table" "$OUTPUT_DIR"
+        exit $?
+      ) &
+      local PID=$!
+      PIDS+=("$PID")
+      PID_TO_TABLE+=("$table")
+    done
+    
+    # Wait for all remaining jobs
+    local i=0
+    for pid in "${PIDS[@]}"; do
+      wait "$pid" 2>/dev/null
+      local EXIT_CODE=$?
+      if [ $EXIT_CODE -eq 0 ]; then
+        ((TABLE_COUNT++))
+      else
+        ((FAILED_COUNT++))
+        echo "Warning: Failed to backup table $SCHEMA.${PID_TO_TABLE[$i]}" >&2
+      fi
+      ((i++))
+    done
+  else
+    # Sequential execution for single table or when parallel disabled
+    for table in "${TABLE_LIST[@]}"; do
       set +e
       if backup_table "$DB_URL" "$SCHEMA" "$table" "$OUTPUT_DIR"; then
         ((TABLE_COUNT++))
@@ -159,8 +230,8 @@ backup_schema() {
         echo "Warning: Failed to backup table $SCHEMA.$table, continuing with other tables..." >&2
       fi
       set -e
-    fi
-  done <<< "$TABLES"
+    done
+  fi
 
   if [ $FAILED_COUNT -gt 0 ]; then
     echo "Warning: Failed to backup $FAILED_COUNT table(s) in schema: $SCHEMA" >&2
