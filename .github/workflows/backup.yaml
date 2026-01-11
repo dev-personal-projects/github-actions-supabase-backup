@@ -5,7 +5,7 @@ on:
     branches: [main, dev]
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "35 19 * * *"
 
 env:
   BACKUP_ENABLED: true
