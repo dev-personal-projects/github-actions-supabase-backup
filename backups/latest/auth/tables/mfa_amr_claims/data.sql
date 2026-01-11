@@ -1,0 +1,35 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict tVx4MrgDdcCXfcF1OojS0eQHeC8ADh2eABJnu3yuuW2DtTd0dR2P6r6fPd5V4sF
+
+-- Dumped from database version 17.6
+-- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Data for Name: mfa_amr_claims; Type: TABLE DATA; Schema: auth; Owner: -
+--
+
+COPY auth.mfa_amr_claims (session_id, created_at, updated_at, authentication_method, id) FROM stdin;
+\.
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict tVx4MrgDdcCXfcF1OojS0eQHeC8ADh2eABJnu3yuuW2DtTd0dR2P6r6fPd5V4sF
+
