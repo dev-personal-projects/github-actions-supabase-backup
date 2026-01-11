@@ -103,23 +103,24 @@ db-backup-actions/
 │   └── workflows/
 │       └── backup.yaml              # Main backup workflow
 ├── backups/
-│   ├── latest/                      # Latest backup (always overwritten)
-│   │   ├── roles.sql               # Database roles
-│   │   ├── public/                 # Public schema
-│   │   │   └── tables/             # Individual table backups
-│   │   │       ├── users/
-│   │   │       │   ├── schema.sql
-│   │   │       │   └── data.sql
-│   │   │       └── orders/
-│   │   │           ├── schema.sql
-│   │   │           └── data.sql
-│   │   └── {custom-schema}/        # Custom schemas
-│   │       └── tables/
-│   │           └── {table-name}/
-│   │               ├── schema.sql
-│   │               └── data.sql
-│   └── archive/                     # Historical backups with prefixes
-│       ├── 2024-01-15T00-00-00Z--repo1--push--abc1234/
+│   ├── latest/                      # Latest backups container
+│   │   └── latest_2024-01-15T14-30-45Z/          # Current timestamped latest
+│   │       ├── roles.sql               # Database roles
+│   │       ├── public/                 # Public schema
+│   │       │   └── tables/             # Individual table backups
+│   │       │       ├── users/
+│   │       │       │   ├── schema.sql
+│   │       │       │   └── data.sql
+│   │       │       └── orders/
+│   │       │           ├── schema.sql
+│   │       │           └── data.sql
+│   │       └── {custom-schema}/        # Custom schemas
+│   │           └── tables/
+│   │               └── {table-name}/
+│   │                   ├── schema.sql
+│   │                   └── data.sql
+│   └── archive/                     # Historical backups (previous latest moved here)
+│       ├── 2024-01-15T14-30-45Z--repo1--push--abc1234/  # Previous latest
 │       │   ├── roles.sql
 │       │   ├── public/
 │       │   │   └── tables/
@@ -160,10 +161,11 @@ Historical backups use a **prefix-based naming system** to distinguish different
 ### Storage Strategy Details
 
 **Latest Backup:**
-- Always stored in `backups/latest/`
-- Overwritten on each new backup
+- Stored in `backups/latest/latest_{timestamp}/` (timestamped folder inside latest/)
+- Automatically archived when new backup starts (moved to `backups/archive/`)
 - Provides quick access to most recent backup
 - Same per-table structure as archive backups
+- Only one timestamped latest folder exists at a time (previous moved to archive)
 
 **Archive Backups:**
 - Stored in `backups/archive/`
@@ -190,7 +192,7 @@ Historical backups use a **prefix-based naming system** to distinguish different
 
 To manage repository size, consider implementing:
 
-1. **Keep latest**: Always keep `backups/latest/`
+1. **Keep latest**: Always keep `backups/latest/latest_{timestamp}/` (most recent timestamped latest)
 2. **Archive retention**: Keep last N backups (e.g., 30 days, 100 backups)
 3. **Cleanup workflow**: Periodic cleanup of old archive folders
 4. **Git LFS**: For very large databases, consider Git LFS for backup files
@@ -473,32 +475,34 @@ Each table is backed up individually for better organization and easier restorat
 
 ```
 backups/
-├── latest/                          # Latest backup (always overwritten)
-│   ├── roles.sql                    # All roles (single file)
-│   ├── public/                      # Public schema
-│   │   └── tables/                  # Individual table backups
-│   │       ├── users/
-│   │       │   ├── schema.sql       # Table structure (CREATE TABLE, indexes, constraints)
-│   │       │   └── data.sql         # Table data (INSERT statements)
-│   │       ├── orders/
-│   │       │   ├── schema.sql
-│   │       │   └── data.sql
-│   │       └── products/
-│   │           ├── schema.sql
-│   │           └── data.sql
-│   ├── {custom-schema-1}/           # Custom schema 1
-│   │   └── tables/
-│   │       ├── table1/
-│   │       │   ├── schema.sql
-│   │       │   └── data.sql
-│   │       └── table2/
-│   │           ├── schema.sql
-│   │           └── data.sql
-│   └── {custom-schema-2}/            # Custom schema 2
-│       └── tables/
-│           └── ...
-└── archive/                         # Historical backups with prefixes
-    ├── 2024-01-15T00-00-00Z--org/repo1--push--abc1234/
+├── latest/                          # Latest backups container
+│   ├── latest → latest_2024-01-15T14-30-45Z/  # Symlink to most recent
+│   └── latest_2024-01-15T14-30-45Z/          # Current timestamped latest
+│       ├── roles.sql                    # All roles (single file)
+│       ├── public/                      # Public schema
+│       │   └── tables/                  # Individual table backups
+│       │       ├── users/
+│       │       │   ├── schema.sql       # Table structure (CREATE TABLE, indexes, constraints)
+│       │       │   └── data.sql         # Table data (INSERT statements)
+│       │       ├── orders/
+│       │       │   ├── schema.sql
+│       │       │   └── data.sql
+│       │       └── products/
+│       │           ├── schema.sql
+│       │           └── data.sql
+│       ├── {custom-schema-1}/           # Custom schema 1
+│       │   └── tables/
+│       │       ├── table1/
+│       │       │   ├── schema.sql
+│       │       │   └── data.sql
+│       │       └── table2/
+│       │           ├── schema.sql
+│       │           └── data.sql
+│       └── {custom-schema-2}/            # Custom schema 2
+│           └── tables/
+│               └── ...
+└── archive/                         # Historical backups (previous latest moved here)
+    ├── 2024-01-15T14-30-45Z--org-repo1--push--abc1234/  # Previous latest
     │   ├── roles.sql
     │   ├── public/
     │   │   └── tables/
@@ -611,7 +615,7 @@ backups/latest/
 
 ### Benefits of This Structure
 
-1. **Latest Always Available**: `backups/latest/` always has the most recent backup
+1. **Latest Always Available**: `backups/latest/latest_{timestamp}/` always has the most recent timestamped backup
 2. **Full History**: `backups/archive/` maintains complete backup history
 3. **Clear Identification**: Prefix shows when, what, and why
 4. **Chronological Sorting**: Timestamp prefix enables natural sorting

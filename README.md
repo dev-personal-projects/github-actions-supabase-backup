@@ -118,26 +118,27 @@ Backups are stored **in this repository** in the `backups/` directory. Each tabl
 
 ```
 backups/
-├── latest/                      # Always contains latest backup
-│   ├── roles.sql               # All database roles
-│   ├── public/                 # Public schema
-│   │   └── tables/             # Individual table backups
-│   │       ├── users/
-│   │       │   ├── schema.sql  # Table structure
-│   │       │   └── data.sql    # Table data
-│   │       ├── orders/
-│   │       │   ├── schema.sql
-│   │       │   └── data.sql
-│   │       └── products/
-│   │           ├── schema.sql
-│   │           └── data.sql
-│   └── {custom-schema}/         # Custom schemas
-│       └── tables/
-│           └── {table-name}/
-│               ├── schema.sql
-│               └── data.sql
-└── archive/                     # Historical backups with prefixes
-    ├── 2024-01-15T00-00-00Z--org/repo1--push--abc1234/
+├── latest/                      # Latest backups container
+│   └── latest_2026-01-11T20-07-50Z/           # Current timestamped latest
+│       ├── roles.sql               # All database roles
+│       ├── public/                 # Public schema
+│       │   └── tables/             # Individual table backups
+│       │       ├── users/
+│       │       │   ├── schema.sql  # Table structure
+│       │       │   └── data.sql    # Table data
+│       │       ├── orders/
+│       │       │   ├── schema.sql
+│       │       │   └── data.sql
+│       │       └── products/
+│       │           ├── schema.sql
+│       │           └── data.sql
+│       └── {custom-schema}/         # Custom schemas
+│           └── tables/
+│               └── {table-name}/
+│                   ├── schema.sql
+│                   └── data.sql
+└── archive/                     # Historical backups (previous latest moved here)
+    ├── 2026-01-11T20-00-43Z--org-repo1--push--abc1234/  # Previous latest
     │   ├── roles.sql
     │   ├── public/
     │   │   └── tables/
@@ -146,8 +147,8 @@ backups/
     │   │       └── products/
     │   └── {custom-schema}/
     │       └── tables/
-    ├── 2024-01-15T12-30-00Z--org/repo2--pr--def5678/
-    └── 2024-01-16T00-00-00Z--org/repo1--schedule--ghi9012/
+    ├── 2024-01-15T12-30-00Z--org-repo2--pr--def5678/
+    └── 2024-01-16T00-00-00Z--org-repo1--schedule--ghi9012/
 ```
 
 **Per-Table Organization Benefits:**
@@ -186,18 +187,22 @@ To restore your database from a backup:
 
 1. Install the [Supabase CLI](https://supabase.com/docs/guides/cli).
 2. Navigate to this repository and locate your backup files:
-   - **Latest backup**: `backups/latest/`
+   - **Latest backup**: `backups/latest/latest_{timestamp}/` or use symlink `backups/latest/latest/`
    - **Historical backup**: `backups/archive/{timestamp}--{repo}--{event}--{sha}/`
 3. Run the following commands in order:
 
 #### Full Database Restoration
 
 ```bash
+# Find the most recent latest backup (use symlink or find latest_* folder)
+LATEST_BACKUP=$(find backups/latest -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
+[ -z "$LATEST_BACKUP" ] && LATEST_BACKUP="backups/latest/latest"  # Fallback to symlink
+
 # Restore roles
-supabase db execute --db-url "<SUPABASE_DB_URL>" -f backups/latest/roles.sql
+supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$LATEST_BACKUP/roles.sql"
 
 # Restore all tables in public schema
-for table_dir in backups/latest/public/tables/*/; do
+for table_dir in "$LATEST_BACKUP/public/tables"/*/; do
   table_name=$(basename "$table_dir")
   echo "Restoring table: $table_name"
   supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$table_dir/schema.sql"
@@ -205,7 +210,7 @@ for table_dir in backups/latest/public/tables/*/; do
 done
 
 # Restore custom schemas (if any)
-for schema_dir in backups/latest/{custom-schema}/tables/*/; do
+for schema_dir in "$LATEST_BACKUP"/{custom-schema}/tables/*/; do
   table_name=$(basename "$schema_dir")
   echo "Restoring table: $table_name"
   supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$schema_dir/schema.sql"
@@ -219,8 +224,11 @@ To restore a specific table only:
 
 ```bash
 # Restore a single table (e.g., users table in public schema)
-supabase db execute --db-url "<SUPABASE_DB_URL>" -f backups/latest/public/tables/users/schema.sql
-supabase db execute --db-url "<SUPABASE_DB_URL>" -f backups/latest/public/tables/users/data.sql
+LATEST_BACKUP=$(find backups/latest -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
+[ -z "$LATEST_BACKUP" ] && LATEST_BACKUP="backups/latest/latest"  # Fallback to symlink
+
+supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$LATEST_BACKUP/public/tables/users/schema.sql"
+supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$LATEST_BACKUP/public/tables/users/data.sql"
 ```
 
 This allows you to restore the entire database or selectively restore individual tables as needed.
@@ -354,9 +362,10 @@ The system will automatically detect and backup all your schemas and tables - no
 ### Backup Storage Location
 
 - **Storage**: All backups are stored in this repository in the `backups/` directory
-- **Latest**: `backups/latest/` always contains the most recent backup
-- **Archive**: `backups/archive/` contains historical backups with timestamp prefixes
+- **Latest**: `backups/latest/latest_{timestamp}/` contains the most recent timestamped backup (previous latest automatically moved to archive)
+- **Archive**: `backups/archive/` contains historical backups (previous latest backups moved here automatically)
 - **Naming**: Archive backups use format: `{timestamp}--{repo}--{event}--{sha}/`
+- **Organization**: Timestamped latest folders stored in `backups/latest/` for proper organization
 - **Version Control**: All backups are tracked in git history
 
 ### Schema Backup Strategy

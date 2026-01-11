@@ -7,6 +7,84 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 source "$SCRIPT_DIR/detect.sh"
 
+# Generate ISO 8601 timestamp in UTC format
+# Output: YYYY-MM-DDTHH-MM-SSZ (e.g., 2024-01-15T14-30-45Z)
+generate_backup_timestamp() {
+  date -u +"%Y-%m-%dT%H-%M-%SZ"
+}
+
+# Generate archive folder name with timestamp
+# Parameters:
+#   $1: Timestamp (ISO 8601 format)
+#   $2: Source repository (e.g., "myorg/myapp" or "standalone")
+#   $3: Trigger event (e.g., "push", "schedule", "manual", "standalone")
+#   $4: Commit SHA (short, 7 chars) or "standalone"
+# Output: Archive folder name (e.g., "2024-01-15T14-30-45Z--myorg/myapp--push--abc1234/")
+generate_archive_name() {
+  local timestamp="${1:-}"
+  local source_repo="${2:-standalone}"
+  local trigger_event="${3:-standalone}"
+  local commit_sha="${4:-standalone}"
+  
+  # Sanitize repository name (replace / with - for filesystem safety)
+  local sanitized_repo=$(echo "$source_repo" | tr '/' '-')
+  
+  # Generate archive name
+  echo "${timestamp}--${sanitized_repo}--${trigger_event}--${commit_sha}/"
+}
+
+# Sanitize repository name for filesystem use
+sanitize_repo_name() {
+  local repo="${1:-standalone}"
+  echo "$repo" | tr '/' '-'
+}
+
+# Create archive directory with timestamp
+# Parameters:
+#   $1: Backup base directory (e.g., "backups")
+#   $2: Timestamp (ISO 8601 format)
+#   $3: Source repository
+#   $4: Trigger event
+#   $5: Commit SHA
+# Output: Full path to archive directory
+create_archive_directory() {
+  local backup_dir="${1:-backups}"
+  local timestamp="${2:-}"
+  local source_repo="${3:-standalone}"
+  local trigger_event="${4:-standalone}"
+  local commit_sha="${5:-standalone}"
+  
+  [ -z "$timestamp" ] && timestamp=$(generate_backup_timestamp)
+  
+  local archive_name=$(generate_archive_name "$timestamp" "$source_repo" "$trigger_event" "$commit_sha")
+  local archive_path="$backup_dir/archive/$archive_name"
+  
+  # Sanitize repository name
+  local sanitized_repo=$(sanitize_repo_name "$source_repo")
+  
+  # Handle duplicate names by appending sequence number
+  local counter=2
+  
+  # Check if directory already exists and has content
+  while [ -d "$archive_path" ] && [ -n "$(ls -A "$archive_path" 2>/dev/null)" ]; do
+    # Directory exists with content, create new one with sequence number
+    archive_name="${timestamp}--${sanitized_repo}--${trigger_event}--${commit_sha}--${counter}/"
+    archive_path="$backup_dir/archive/$archive_name"
+    ((counter++))
+    
+    # Safety limit
+    [ $counter -gt 100 ] && {
+      echo "Error: Too many duplicate archive directories" >&2
+      exit 1
+    }
+  done
+  
+  # Create archive directory
+  mkdir -p "$archive_path"
+  
+  echo "$archive_path"
+}
+
 # Backup database roles
 backup_roles() {
   local DB_URL="${1:-}"
@@ -329,6 +407,9 @@ print_backup_summary() {
   local DB_URL="${2:-}"
   local START_TIME="${3:-}"
   local END_TIME="${4:-}"
+  local BACKUP_TIMESTAMP="${5:-}"
+  local ARCHIVE_NAME="${6:-}"
+  local LATEST_NAME="${7:-}"
   
   [ -z "$BACKUP_DIR" ] && {
     echo "Error: Backup directory is required" >&2
@@ -353,20 +434,37 @@ print_backup_summary() {
   local TOTAL_BACKUP_SIZE=0
   local ROLES_SIZE=0
   
+  # Determine backup location (prefer archive, fallback to latest)
+  local BACKUP_LOCATION=""
+  if [ -n "$ARCHIVE_NAME" ] && [ -d "$BACKUP_DIR/archive/$ARCHIVE_NAME" ]; then
+    BACKUP_LOCATION="$BACKUP_DIR/archive/$ARCHIVE_NAME"
+  elif [ -n "$LATEST_NAME" ] && [ -d "$BACKUP_DIR/latest/$LATEST_NAME" ]; then
+    BACKUP_LOCATION="$BACKUP_DIR/latest/$LATEST_NAME"
+  elif [ -d "$BACKUP_DIR/latest" ]; then
+    # Try to find latest_* folder inside latest/
+    local latest_folder=$(find "$BACKUP_DIR/latest" -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
+    [ -n "$latest_folder" ] && BACKUP_LOCATION="$latest_folder"
+  fi
+  
+  [ -z "$BACKUP_LOCATION" ] && {
+    echo "Warning: Could not determine backup location" >&2
+    return 1
+  }
+  
   # Count roles file size
-  if [ -f "$BACKUP_DIR/latest/roles.sql" ]; then
-    ROLES_SIZE=$(stat -c%s "$BACKUP_DIR/latest/roles.sql" 2>/dev/null || echo "0")
+  if [ -f "$BACKUP_LOCATION/roles.sql" ]; then
+    ROLES_SIZE=$(stat -c%s "$BACKUP_LOCATION/roles.sql" 2>/dev/null || echo "0")
     TOTAL_BACKUP_SIZE=$((TOTAL_BACKUP_SIZE + ROLES_SIZE))
   fi
   
   # Process each schema directory
   local SCHEMA_DETAILS=""
-  if [ -d "$BACKUP_DIR/latest" ]; then
+  if [ -d "$BACKUP_LOCATION" ]; then
     while IFS= read -r schema_dir; do
       [ ! -d "$schema_dir" ] && continue
       
       local schema=$(basename "$schema_dir")
-      [ "$schema" = "latest" ] && continue
+      [ "$schema" = "latest" ] || [ "$schema" = "archive" ] && continue
       
       SCHEMA_COUNT=$((SCHEMA_COUNT + 1))
       
@@ -405,7 +503,7 @@ print_backup_summary() {
       SCHEMA_DETAILS="${SCHEMA_DETAILS}
     - Total schema size: $(numfmt --to=iec-i --suffix=B "$schema_total" 2>/dev/null || echo "0B")"
       
-    done <<< "$(find "$BACKUP_DIR/latest" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)"
+    done <<< "$(find "$BACKUP_LOCATION" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | grep -v "^$BACKUP_LOCATION/latest$" | grep -v "^$BACKUP_LOCATION/archive$")"
   fi
   
   # Calculate backup speed if duration > 0
@@ -415,6 +513,10 @@ print_backup_summary() {
     BACKUP_SPEED="$(numfmt --to=iec-i --suffix=B/s "$speed_bps" 2>/dev/null || echo "N/A")"
   fi
   
+  # Format timestamp for display
+  local DISPLAY_TIMESTAMP="${BACKUP_TIMESTAMP:-$(date -u +"%Y-%m-%dT%H-%M-%SZ")}"
+  local DISPLAY_DATE=$(echo "$DISPLAY_TIMESTAMP" | sed 's/T/ /;s/Z/ UTC/;s/-/:/g' | sed 's/\([0-9][0-9]\):\([0-9][0-9]\):\([0-9][0-9]\)/\1-\2-\3/')
+  
   # Print summary
   cat <<EOF
 
@@ -423,7 +525,8 @@ print_backup_summary() {
 ╚════════════════════════════════════════════════════════════════╝
 
 📅 Backup Information:
-   Timestamp:        $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+   Timestamp:        ${DISPLAY_TIMESTAMP}
+   Date/Time:        ${DISPLAY_DATE}
    Duration:         ${DURATION}s
    Backup Speed:     ${BACKUP_SPEED}
 
@@ -451,7 +554,28 @@ EOF
 📁 Schema Details:${SCHEMA_DETAILS}
 
 📂 Backup Location:
-   Directory: ${BACKUP_DIR}/latest
+EOF
+
+  if [ -n "$ARCHIVE_NAME" ]; then
+    cat <<EOF
+   Archive:          ${BACKUP_DIR}/archive/${ARCHIVE_NAME}
+EOF
+    if [ -n "$LATEST_NAME" ]; then
+      cat <<EOF
+   Latest (Timestamped): ${BACKUP_DIR}/latest/${LATEST_NAME}
+EOF
+    else
+      cat <<EOF
+   Latest:            ${BACKUP_DIR}/latest
+EOF
+    fi
+  else
+    cat <<EOF
+   Directory:        ${BACKUP_DIR}/latest
+EOF
+  fi
+
+  cat <<EOF
 
 ✅ Status: Backup completed successfully
 

@@ -23,6 +23,9 @@ force_ipv4_connection() {
   local DB_URL="$1"
   local RESOLUTION_OUTPUT="${2:-/dev/stderr}"  # Optional: redirect resolution messages
   
+  # Normalize connection string first (ensure password is URL-encoded)
+  DB_URL=$(normalize_connection_string "$DB_URL")
+  
   # Extract components from connection string
   if [[ "$DB_URL" =~ postgresql://([^:]+):([^@]+)@([^:/]+):([0-9]+)/([^?]*)(.*) ]]; then
     local USER="${BASH_REMATCH[1]}"
@@ -55,6 +58,47 @@ force_ipv4_connection() {
   echo "$DB_URL"
 }
 
+# URL encode a string (handles special characters in passwords)
+url_encode() {
+  local raw="$1"
+  # Encode special characters that break PostgreSQL connection strings
+  # Don't encode % if it's already part of an encoded sequence (like %40)
+  # We'll encode % only if it's standalone (not followed by hex digits)
+  raw="${raw//@/%40}"
+  raw="${raw//:/%3A}"
+  raw="${raw//\//%2F}"
+  raw="${raw//#/%23}"
+  raw="${raw// /%20}"
+  # Only encode standalone % (not part of %XX pattern)
+  # This regex matches % not followed by two hex digits
+  raw=$(echo "$raw" | sed 's/%\([^0-9A-Fa-f]\|$\)/%25\1/g' | sed 's/%\([0-9A-Fa-f]\)\?\([^0-9A-Fa-f]\)/%25\2/g' || echo "$raw")
+  # Simpler approach: only encode % if it's not followed by two hex chars
+  # Use a more reliable method - replace % only if not part of %XX
+  local result=""
+  local i=0
+  while [ $i -lt ${#raw} ]; do
+    local char="${raw:$i:1}"
+    if [ "$char" = "%" ]; then
+      # Check if followed by two hex digits
+      if [ $((i + 2)) -lt ${#raw} ] && [[ "${raw:$((i+1)):2}" =~ ^[0-9A-Fa-f]{2}$ ]]; then
+        # It's part of an encoded sequence, keep it
+        result="${result}%"
+        ((i++))
+        result="${result}${raw:$i:2}"
+        ((i+=2))
+      else
+        # Standalone %, encode it
+        result="${result}%25"
+        ((i++))
+      fi
+    else
+      result="${result}${char}"
+      ((i++))
+    fi
+  done
+  echo "$result"
+}
+
 # URL decode a string
 url_decode() {
   local encoded="$1"
@@ -65,6 +109,75 @@ url_decode() {
   encoded="${encoded//%20/ }"
   encoded="${encoded//%25/%}"
   echo "$encoded"
+}
+
+# Normalize connection string - ensures password is properly URL-encoded
+normalize_connection_string() {
+  local DB_URL="$1"
+  
+  # Remove protocol prefix
+  local REST="${DB_URL#postgresql://}"
+  
+  # Try to find the pattern :port/ which indicates where host:port/db starts
+  # This helps us identify where the password ends (before the @ before host)
+  if [[ "$REST" =~ :([0-9]+)/(.+) ]]; then
+    local PORT="${BASH_REMATCH[1]}"
+    local DB_AND_PARAMS="${BASH_REMATCH[2]}"
+    
+    # Extract DB and params
+    local DB="${DB_AND_PARAMS%%\?*}"
+    local PARAMS="${DB_AND_PARAMS#*\?}"
+    [ "$PARAMS" = "$DB_AND_PARAMS" ] && PARAMS=""
+    
+    # Find everything before :port/ - this is user:password@host
+    local BEFORE_PORT="${REST%:*${PORT}/*}"
+    
+    # Find the @ that separates credentials from host
+    # The host part should be after the last @ before :port/
+    # Use parameter expansion to find the last @
+    local CREDS_AND_HOST="${BEFORE_PORT}"
+    
+    # Try to extract using pattern matching
+    # Pattern: user:password@host where password might contain @
+    # We know host ends with :port, so find @ followed by something ending with :port
+    if [[ "$CREDS_AND_HOST" =~ ^([^:]+):(.+)@(.+)$ ]]; then
+      local USER="${BASH_REMATCH[1]}"
+      local PASS="${BASH_REMATCH[2]}"
+      local HOST="${BASH_REMATCH[3]}"
+      
+      # If password contains special chars and isn't encoded, encode it
+      if [[ "$PASS" =~ [@:/#\ ] ]] && [[ "$PASS" != *"%"* ]]; then
+        PASS=$(url_encode "$PASS")
+      fi
+      
+      # Reconstruct connection string
+      if [ -n "$PARAMS" ]; then
+        DB_URL="postgresql://${USER}:${PASS}@${HOST}:${PORT}/${DB}?${PARAMS}"
+      else
+        DB_URL="postgresql://${USER}:${PASS}@${HOST}:${PORT}/${DB}"
+      fi
+    elif [[ "$DB_URL" =~ postgresql://([^:]+):([^@]+)@([^:/]+):([0-9]+)/([^?]*)(.*) ]]; then
+      # Standard parsing worked (password doesn't contain @)
+      local USER="${BASH_REMATCH[1]}"
+      local PASS="${BASH_REMATCH[2]}"
+      local HOST="${BASH_REMATCH[3]}"
+      local PORT="${BASH_REMATCH[4]}"
+      local DB="${BASH_REMATCH[5]}"
+      local PARAMS="${BASH_REMATCH[6]}"
+      
+      # Check if password needs encoding
+      if [[ "$PASS" =~ [@:/#\ ] ]] && [[ "$PASS" != *"%"* ]]; then
+        PASS=$(url_encode "$PASS")
+        if [ -n "$PARAMS" ]; then
+          DB_URL="postgresql://${USER}:${PASS}@${HOST}:${PORT}/${DB}?${PARAMS}"
+        else
+          DB_URL="postgresql://${USER}:${PASS}@${HOST}:${PORT}/${DB}"
+        fi
+      fi
+    fi
+  fi
+  
+  echo "$DB_URL"
 }
 
 # Global connection semaphore for coordinating database connections across all schemas

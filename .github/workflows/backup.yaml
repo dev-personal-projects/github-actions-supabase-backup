@@ -5,7 +5,7 @@ on:
     branches: [main, dev]
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 12 * * *"
 
 env:
   BACKUP_ENABLED: true
@@ -56,6 +56,14 @@ jobs:
         run: |
           chmod +x .github/scripts/*.sh
           mkdir -p "$BACKUP_DIR/latest" "$BACKUP_DIR/archive"
+
+      - name: Generate backup timestamp
+        if: env.BACKUP_ENABLED == 'true'
+        id: timestamp
+        run: |
+          BACKUP_TIMESTAMP=$(date -u +"%Y-%m-%dT%H-%M-%SZ")
+          echo "timestamp=$BACKUP_TIMESTAMP" >> $GITHUB_OUTPUT
+          echo "Generated backup timestamp: $BACKUP_TIMESTAMP"
 
       - name: Detect schemas
         if: env.BACKUP_ENABLED == 'true'
@@ -133,11 +141,73 @@ jobs:
             [ -n "$schema" ] && echo "  - $schema"
           done
 
+      - name: Archive previous latest and create new latest
+        if: env.BACKUP_ENABLED == 'true'
+        id: latest-setup
+        run: |
+          source .github/scripts/backup.sh
+          BACKUP_TIMESTAMP="${{ steps.timestamp.outputs.timestamp }}"
+          SOURCE_REPO="${{ github.repository }}"
+          TRIGGER_EVENT="${{ github.event_name }}"
+          COMMIT_SHA="${{ github.sha }}"
+
+          # Ensure latest directory exists
+          mkdir -p "$BACKUP_DIR/latest"
+
+          # Find existing latest_{timestamp} folder inside latest/ to archive
+          OLD_LATEST=""
+          if [ -d "$BACKUP_DIR/latest" ]; then
+            OLD_LATEST=$(find "$BACKUP_DIR/latest" -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
+          fi
+
+          # If old latest exists, move it to archive
+          if [ -n "$OLD_LATEST" ] && [ -d "$OLD_LATEST" ] && [ -n "$(ls -A "$OLD_LATEST" 2>/dev/null)" ]; then
+            OLD_LATEST_NAME=$(basename "$OLD_LATEST")
+            # Extract timestamp from old latest folder name (format: latest_{timestamp})
+            OLD_TIMESTAMP=$(echo "$OLD_LATEST_NAME" | sed 's/^latest_//')
+            
+            # Create archive name for the old latest backup
+            ARCHIVE_NAME=$(generate_archive_name "$OLD_TIMESTAMP" "$SOURCE_REPO" "$TRIGGER_EVENT" "${COMMIT_SHA:0:7}")
+            ARCHIVE_PATH="$BACKUP_DIR/archive/$ARCHIVE_NAME"
+            
+            # Handle duplicates by appending sequence number
+            COUNTER=2
+            while [ -d "$ARCHIVE_PATH" ] && [ -n "$(ls -A "$ARCHIVE_PATH" 2>/dev/null)" ]; do
+              SANITIZED_REPO=$(echo "$SOURCE_REPO" | tr '/' '-')
+              ARCHIVE_NAME="${OLD_TIMESTAMP}--${SANITIZED_REPO}--${TRIGGER_EVENT}--${COMMIT_SHA:0:7}--${COUNTER}/"
+              ARCHIVE_PATH="$BACKUP_DIR/archive/$ARCHIVE_NAME"
+              COUNTER=$((COUNTER + 1))
+              [ $COUNTER -gt 100 ] && break
+            done
+            
+            # Move old latest to archive
+            mkdir -p "$(dirname "$ARCHIVE_PATH")"
+            mv "$OLD_LATEST" "$ARCHIVE_PATH"
+            echo "Archived previous latest: $OLD_LATEST_NAME → archive/$ARCHIVE_NAME"
+          fi
+
+          # Create new timestamped latest folder inside latest/ for this backup
+          LATEST_NAME="latest_${BACKUP_TIMESTAMP}"
+          LATEST_PATH="$BACKUP_DIR/latest/$LATEST_NAME"
+          mkdir -p "$LATEST_PATH"
+
+          # Remove any remaining old latest folders (cleanup)
+          if [ -d "$BACKUP_DIR/latest" ]; then
+            for old_latest in "$BACKUP_DIR/latest"/latest_*; do
+              [ -d "$old_latest" ] && [ "$old_latest" != "$LATEST_PATH" ] && rm -rf "$old_latest"
+            done
+          fi
+
+          echo "latest_path=$LATEST_PATH" >> $GITHUB_OUTPUT
+          echo "latest_name=$LATEST_NAME" >> $GITHUB_OUTPUT
+          echo "Created new latest folder: $LATEST_NAME"
+
       - name: Backup roles
         if: env.BACKUP_ENABLED == 'true'
         run: |
           source .github/scripts/backup.sh
-          backup_roles "$SUPABASE_DB_URL" "$BACKUP_DIR/latest/roles.sql"
+          LATEST_PATH="${{ steps.latest-setup.outputs.latest_path }}"
+          backup_roles "$SUPABASE_DB_URL" "$LATEST_PATH/roles.sql"
 
       - name: Backup schemas and tables
         if: env.BACKUP_ENABLED == 'true'
@@ -173,6 +243,9 @@ jobs:
           SCHEMA_COUNT=0
           SCHEMA_PIDS=()
 
+          # Get latest path from previous step
+          LATEST_PATH="${{ steps.latest-setup.outputs.latest_path }}"
+
           # Start all schema backups in parallel
           for schema in $SCHEMAS; do
             [ -z "$schema" ] && continue
@@ -180,7 +253,7 @@ jobs:
             # Start schema backup in background (all at once)
             (
               set +e
-              backup_schema "$SUPABASE_DB_URL" "$schema" "$BACKUP_DIR/latest" || {
+              backup_schema "$SUPABASE_DB_URL" "$schema" "$LATEST_PATH" || {
                 echo "Warning: Failed to backup schema $schema" >&2
               }
             ) &
@@ -210,7 +283,9 @@ jobs:
           source .github/scripts/backup.sh
           START_TIME="${{ steps.backup-schemas.outputs.start_time }}"
           END_TIME="${{ steps.backup-schemas.outputs.end_time }}"
-          print_backup_summary "$BACKUP_DIR" "$SUPABASE_DB_URL" "$START_TIME" "$END_TIME"
+          BACKUP_TIMESTAMP="${{ steps.timestamp.outputs.timestamp }}"
+          LATEST_NAME="${{ steps.latest-setup.outputs.latest_name }}"
+          print_backup_summary "$BACKUP_DIR" "$SUPABASE_DB_URL" "$START_TIME" "$END_TIME" "$BACKUP_TIMESTAMP" "" "$LATEST_NAME"
 
       - name: Commit backups
         if: env.BACKUP_ENABLED == 'true'
