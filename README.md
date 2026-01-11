@@ -12,7 +12,7 @@ This repository provides a seamless way to automate backups of **any Supabase da
 - **Automatic Daily Backups:** Scheduled backups run every day at midnight (configure in one repo only)
 - **Automatic Schema Detection:** Works with any Supabase database - automatically detects all schemas and tables
 - **Per-Table Backups:** Each table is backed up individually for selective restoration
-- **Smart Schema Filtering:** Automatically excludes Supabase system schemas (auth, storage, realtime, etc.)
+- **Full Database Backup:** Backs up ALL schemas including Supabase system schemas (auth, storage, realtime, etc.)
 - **Universal Compatibility:** Works with any Supabase account - just provide your connection string
 - **Flexible Workflow Control:** Enable or disable backups with a simple environment variable
 - **Centralized Storage:** All backups stored in a dedicated backup repository
@@ -371,16 +371,17 @@ The system **automatically works with any Supabase database**:
   - Any custom schemas you've created (e.g., `analytics`, `billing`, `custom_app`, etc.)
   - All tables within custom schemas are backed up individually
   - System adapts to your database structure automatically
-- ❌ **System Schemas Excluded**: Automatically excludes Supabase system schemas
-  - `auth`, `storage`, `realtime`, `vault`, `extensions`, `graphql`, `graphql_public`, `pgbouncer`
-  - PostgreSQL system schemas: `pg_catalog`, `information_schema`, `pg_temp_*`, `pg_toast_temp_*`
+- ✅ **Full Database Backup**: Includes ALL Supabase system schemas
+  - `auth`, `storage`, `realtime`, `vault`, `extensions`, `graphql`, `graphql_public`, `pgbouncer`, `cron`, `pg_cron`, `pgagent`
+  - All custom user schemas
+  - Only PostgreSQL internal schemas excluded: `pg_catalog`, `information_schema`, `pg_toast`, `pg_temp_*`, `pg_toast_temp_*`
 
 **How It Works:**
 1. You provide your Supabase connection string
-2. System queries your database to discover all schemas and tables
-3. Automatically filters out system schemas
-4. Creates per-table backups for all user schemas and tables
-5. No configuration needed - works with any Supabase database structure
+2. System queries your database to discover ALL schemas and tables
+3. Includes ALL Supabase system schemas (full database backup)
+4. Creates per-table backups for ALL schemas and tables
+5. No configuration needed - performs complete full backup of entire database
 
 **Example:** If your database has:
 - `public` schema with 20 tables
@@ -393,6 +394,9 @@ The system will automatically detect and backup all 33 tables across 3 schemas.
 
 For detailed architecture, implementation plans, and test scenarios, see:
 - [System Plan](./Docs/system-plan.md) - Comprehensive planning document with architecture, requirements, and test scenarios
+- [Development Plan](./Docs/development-plan.md) - Development phases, tasks, and implementation details
+- [Script Improvement Plan](./Docs/script-improvement-plan.md) - Plan for modernizing standalone backup script
+- [Full Backup Policy](./Docs/full-backup-policy.md) - Complete database backup policy (includes ALL Supabase schemas)
 
 ## Contributing
 

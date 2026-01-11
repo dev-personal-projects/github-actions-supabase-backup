@@ -66,3 +66,80 @@ url_decode() {
   encoded="${encoded//%25/%}"
   echo "$encoded"
 }
+
+# Global connection semaphore for coordinating database connections across all schemas
+# Uses file-based locking to limit total concurrent connections
+GLOBAL_SEMAPHORE_DIR="${GLOBAL_SEMAPHORE_DIR:-/tmp/backup_semaphore_$$}"
+GLOBAL_MAX_CONNECTIONS="${GLOBAL_MAX_CONNECTIONS:-10}"  # Total concurrent connections across all schemas
+
+# Initialize global semaphore
+init_global_semaphore() {
+  mkdir -p "$GLOBAL_SEMAPHORE_DIR"
+  # Create semaphore slots directory (slots are created on-demand)
+  touch "$GLOBAL_SEMAPHORE_DIR/.initialized"
+}
+
+# Acquire a connection slot (blocking)
+# Uses atomic file operations to coordinate across processes
+acquire_connection_slot() {
+  # Allow shorter timeout for table detection (faster queries)
+  # Use shorter timeout if DETECTION_TIMEOUT is set, otherwise default to 5 minutes
+  local max_wait=${DETECTION_TIMEOUT:-300}  # Default: 5 minutes, can be overridden for faster operations
+  local waited=0
+  local slot_num=0
+  
+  while [ $waited -lt $max_wait ]; do
+    # Try each slot
+    slot_num=0
+    while [ $slot_num -lt $GLOBAL_MAX_CONNECTIONS ]; do
+      local slot_file="$GLOBAL_SEMAPHORE_DIR/slot_${slot_num}"
+      local lock_file="$slot_file.lock"
+      
+      # First, check if lock file exists and if the process is still alive
+      if [ -f "$lock_file" ]; then
+        local lock_pid=$(cat "$lock_file" 2>/dev/null || echo "")
+        if [ -n "$lock_pid" ] && kill -0 "$lock_pid" 2>/dev/null; then
+          # Process is alive, slot is taken - try next slot
+          ((slot_num++))
+          continue
+        fi
+        # Process is dead, clean up stale lock
+        rm -f "$lock_file" 2>/dev/null
+      fi
+      
+      # Try to acquire the slot atomically
+      # set -C in subshell: creates file only if it doesn't exist (atomic operation)
+      # Redirect stderr to /dev/null to suppress "cannot overwrite" messages
+      # This is expected behavior when slot is taken
+      if (set -C; echo $$ > "$lock_file") 2>/dev/null; then
+        # Successfully acquired lock - slot is ours
+        echo "$slot_file"
+        return 0
+      fi
+      
+      # If we get here, another process grabbed the slot between our check and create
+      # This is normal - just try the next slot
+      ((slot_num++))
+    done
+    
+    # No slot available, wait a bit before retrying all slots
+    sleep 0.1
+    waited=$((waited + 1))
+  done
+  
+  echo "Error: Timeout waiting for connection slot after ${max_wait}s" >&2
+  return 1
+}
+
+# Release a connection slot
+release_connection_slot() {
+  local slot_file="${1:-}"
+  [ -z "$slot_file" ] && return 1
+  # Remove lock file to free the slot
+  rm -f "$slot_file.lock" 2>/dev/null
+}
+
+# Cleanup semaphore directory
+cleanup_global_semaphore() {
+  [ -d "$GLOBAL_SEMAPHORE_DIR" ] && rm -rf "$GLOBAL_SEMAPHORE_DIR" 2>/dev/null
+}

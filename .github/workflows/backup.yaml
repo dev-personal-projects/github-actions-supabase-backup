@@ -141,20 +141,76 @@ jobs:
 
       - name: Backup schemas and tables
         if: env.BACKUP_ENABLED == 'true'
+        id: backup-schemas
+        env:
+          BACKUP_MAX_PARALLEL: 8 # Number of parallel table backups per schema
+          GLOBAL_MAX_CONNECTIONS: 10 # Total concurrent database connections across all schemas
+          # Note: This includes connections for table detection queries, so 10 allows for better parallelism
         run: |
+          set +e  # Disable exit on error for parallel execution
+          START_TIME=$(date +%s)
+          source .github/scripts/common.sh
           source .github/scripts/backup.sh
+          set +e  # Re-disable exit on error after sourcing (backup.sh sets -e)
+
+          # Initialize global connection semaphore to limit total concurrent connections
+          # Use a fixed semaphore directory that all background jobs can access
+          export GLOBAL_SEMAPHORE_DIR="/tmp/backup_semaphore_$$"
+          export GLOBAL_MAX_CONNECTIONS="${GLOBAL_MAX_CONNECTIONS:-10}"
+          init_global_semaphore
+          trap "cleanup_global_semaphore" EXIT
+
           SCHEMAS="${{ steps.detect-schemas.outputs.schemas }}"
 
           if [ -z "$SCHEMAS" ]; then
             echo "No schemas detected. Exiting."
+            cleanup_global_semaphore
             exit 0
           fi
 
-          while IFS= read -r schema; do
-            [ -n "$schema" ] && backup_schema "$SUPABASE_DB_URL" "$schema" "$BACKUP_DIR/latest" || {
-              echo "Warning: Failed to backup schema $schema, continuing..." >&2
-            }
-          done <<< "$SCHEMAS"
+          # Backup schemas in parallel for better performance
+          # Run all schemas in parallel - connection semaphore will limit total connections
+          SCHEMA_COUNT=0
+          SCHEMA_PIDS=()
+
+          # Start all schema backups in parallel
+          for schema in $SCHEMAS; do
+            [ -z "$schema" ] && continue
+            
+            # Start schema backup in background (all at once)
+            (
+              set +e
+              backup_schema "$SUPABASE_DB_URL" "$schema" "$BACKUP_DIR/latest" || {
+                echo "Warning: Failed to backup schema $schema" >&2
+              }
+            ) &
+            SCHEMA_PIDS+=($!)
+            ((SCHEMA_COUNT++))
+          done
+
+          # Wait for all schema backups to complete
+          for pid in "${SCHEMA_PIDS[@]}"; do
+            wait "$pid" 2>/dev/null || true
+          done
+
+          echo "Completed backup for $SCHEMA_COUNT schema(s)"
+
+          # Cleanup semaphore
+          cleanup_global_semaphore
+          trap - EXIT
+
+          END_TIME=$(date +%s)
+          echo "start_time=$START_TIME" >> $GITHUB_OUTPUT
+          echo "end_time=$END_TIME" >> $GITHUB_OUTPUT
+          set -e  # Re-enable exit on error (after outputs are set)
+
+      - name: Generate backup summary
+        if: env.BACKUP_ENABLED == 'true'
+        run: |
+          source .github/scripts/backup.sh
+          START_TIME="${{ steps.backup-schemas.outputs.start_time }}"
+          END_TIME="${{ steps.backup-schemas.outputs.end_time }}"
+          print_backup_summary "$BACKUP_DIR" "$SUPABASE_DB_URL" "$START_TIME" "$END_TIME"
 
       - name: Commit backups
         if: env.BACKUP_ENABLED == 'true'

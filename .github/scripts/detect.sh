@@ -10,7 +10,9 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
-# Detect user schemas (excludes Supabase system schemas)
+# Detect all schemas for full database backup
+# Includes ALL Supabase system schemas (auth, storage, realtime, vault, etc.)
+# Only excludes PostgreSQL internal system schemas (pg_catalog, information_schema, pg_toast, pg_temp*)
 detect_schemas() {
   local DB_URL="${1:-}"
   
@@ -52,7 +54,9 @@ detect_schemas() {
   fi
   rm -f "$ERROR_FILE"
 
-  # Query schemas
+  # Query all schemas for full backup
+  # Only exclude PostgreSQL internal system schemas
+  # Include ALL Supabase system schemas (auth, storage, realtime, vault, etc.)
   local QUERY_OUTPUT=$(mktemp)
   local QUERY_ERROR=$(mktemp)
   
@@ -60,10 +64,7 @@ detect_schemas() {
     SELECT schema_name 
     FROM information_schema.schemata 
     WHERE schema_name NOT IN (
-      'pg_catalog', 'information_schema', 'pg_toast',
-      'auth', 'extensions', 'graphql', 'graphql_public',
-      'realtime', 'storage', 'vault', 'pgbouncer',
-      'cron', 'pg_cron', 'pgagent'
+      'pg_catalog', 'information_schema', 'pg_toast'
     )
     AND schema_name NOT LIKE 'pg_temp%'
     AND schema_name NOT LIKE 'pg_toast_temp%'
@@ -90,6 +91,7 @@ detect_schemas() {
 }
 
 # Detect tables in a specific schema
+# Uses connection semaphore if available to coordinate with backup operations
 detect_tables() {
   local DB_URL="${1:-}"
   local SCHEMA="${2:-}"
@@ -101,9 +103,35 @@ detect_tables() {
 
   DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
 
+  # Acquire connection slot if semaphore is available (for coordination with backups)
+  # This prevents connection limit issues when multiple schemas detect tables in parallel
+  local SLOT_FILE=""
+  if [ -n "${GLOBAL_SEMAPHORE_DIR:-}" ] && [ -d "$GLOBAL_SEMAPHORE_DIR" ]; then
+    # Use shorter timeout for table detection (30 seconds - detection queries are fast)
+    export DETECTION_TIMEOUT=30
+    SLOT_FILE=$(acquire_connection_slot 2>/dev/null || echo "")
+    unset DETECTION_TIMEOUT
+    if [ -z "$SLOT_FILE" ]; then
+      # If semaphore acquisition fails, retry with exponential backoff (max 3s total)
+      local retry=0
+      local max_retries=3
+      local delay=1  # Start with 1 second (integer for bash arithmetic)
+      while [ $retry -lt $max_retries ]; do
+        sleep $delay
+        export DETECTION_TIMEOUT=30
+        SLOT_FILE=$(acquire_connection_slot 2>/dev/null || echo "")
+        unset DETECTION_TIMEOUT
+        [ -n "$SLOT_FILE" ] && break
+        delay=$((delay * 2))  # Exponential backoff: 1s, 2s, 4s
+        ((retry++))
+      done
+    fi
+  fi
+
   local PSQL=$(get_pg_binary "psql")
   local QUERY_OUTPUT=$(mktemp)
   local QUERY_ERROR=$(mktemp)
+  local EXIT_CODE=0
   
   if ! $PSQL "$DB_URL" -t -A -c "
     SELECT table_name 
@@ -114,15 +142,19 @@ detect_tables() {
   " > "$QUERY_OUTPUT" 2> "$QUERY_ERROR"; then
     echo "Error: Failed to query tables in schema '$SCHEMA'" >&2
     [ -s "$QUERY_ERROR" ] && cat "$QUERY_ERROR" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
-    rm -f "$QUERY_OUTPUT" "$QUERY_ERROR"
-    exit 1
+    EXIT_CODE=1
+  else
+    # Output tables (filter out empty lines)
+    grep -v '^$' "$QUERY_OUTPUT" | while read -r table; do
+      [ -n "$table" ] && echo "$table"
+    done
   fi
   
-  grep -v '^$' "$QUERY_OUTPUT" | while read -r table; do
-    [ -n "$table" ] && echo "$table"
-  done
+  # Release connection slot if we acquired one (release immediately after query)
+  [ -n "$SLOT_FILE" ] && release_connection_slot "$SLOT_FILE" 2>/dev/null || true
   
   rm -f "$QUERY_OUTPUT" "$QUERY_ERROR"
+  [ $EXIT_CODE -ne 0 ] && exit $EXIT_CODE
 }
 
 # Main entry point for command-line usage

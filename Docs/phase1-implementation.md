@@ -15,7 +15,7 @@ Phase 1: Core Backup Workflow (Foundation) has been successfully implemented wit
    - `url_decode()` - URL decodes connection string components
 
 2. **`detect.sh`** - Schema and table detection functions
-   - `detect_schemas()` - Detects user schemas, excludes Supabase system schemas
+   - `detect_schemas()` - Detects ALL schemas including Supabase system schemas (full backup)
    - `detect_tables()` - Detects tables in a specific schema
    - Uses PostgreSQL 17 client via `get_pg_binary()`
 
@@ -100,7 +100,7 @@ backups/
 ### Automatic Detection
 - ✅ Automatically detects all user schemas
 - ✅ Automatically detects all tables per schema
-- ✅ Excludes Supabase system schemas automatically
+- ✅ Includes ALL Supabase system schemas automatically (full database backup)
 - ✅ Works with any Supabase database structure
 
 ### Per-Table Backups
