@@ -112,17 +112,17 @@ detect_tables() {
     SLOT_FILE=$(acquire_connection_slot 2>/dev/null || echo "")
     unset DETECTION_TIMEOUT
     if [ -z "$SLOT_FILE" ]; then
-      # If semaphore acquisition fails, retry with exponential backoff (max 5s total)
+      # If semaphore acquisition fails, retry with exponential backoff (max 3s total)
       local retry=0
       local max_retries=3
-      local delay=0.5
+      local delay=1  # Start with 1 second (integer for bash arithmetic)
       while [ $retry -lt $max_retries ]; do
         sleep $delay
         export DETECTION_TIMEOUT=30
         SLOT_FILE=$(acquire_connection_slot 2>/dev/null || echo "")
         unset DETECTION_TIMEOUT
         [ -n "$SLOT_FILE" ] && break
-        delay=$((delay * 2))
+        delay=$((delay * 2))  # Exponential backoff: 1s, 2s, 4s
         ((retry++))
       done
     fi
