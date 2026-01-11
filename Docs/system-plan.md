@@ -571,23 +571,23 @@ Each table within a schema is backed up individually:
 - ✅ **Parallel Processing**: Can restore multiple tables in parallel if needed
 - ✅ **Clear Dependencies**: Easy to see table relationships and restore order
 
-### Dual Backup Structure (Standalone Script)
+### Dual Backup Structure
 
-**Note**: The standalone backup script (`0_backup_supabase_lighthouse_db.sh`) creates a **dual backup structure** that includes both:
+**Note**: The backup workflow creates a **dual backup structure** that includes both:
 
 1. **Schema-Level .dump Files** (for fast full schema restoration):
    - Location: `{schema}/{schema}_schema_{timestamp}.dump`
    - Format: PostgreSQL custom format (compressed)
    - Contains: Complete schema backup (all tables, indexes, constraints, etc.)
-   - Created by: Standalone script
+   - Created by: Workflow (using `backup_schema_dump()` function)
 
 2. **Per-Table Files** (for selective table restoration):
    - Location: `{schema}/tables/{table-name}/schema.sql` and `data.sql`
    - Format: Plain SQL files
    - Contains: Individual table structure and data
-   - Created by: Both workflow and standalone script (using backup.sh)
+   - Created by: Workflow (using `backup_schema()` function)
 
-**Complete Structure (Standalone Script):**
+**Complete Structure (Workflow):**
 ```
 backups/latest/
 ├── roles.sql

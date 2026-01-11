@@ -1,21 +1,53 @@
 #!/bin/bash
 # Common functions for database connection handling
 
-# Get PostgreSQL 17 binary path or fallback to system default
+# Get latest PostgreSQL binary path or fallback to system default
+# Detects the highest versioned PostgreSQL installation available
 get_pg_binary() {
   local binary="$1"
-  # Check multiple possible locations for PostgreSQL 17
-  if [ -f "/usr/lib/postgresql/17/bin/$binary" ]; then
-    echo "/usr/lib/postgresql/17/bin/$binary"
-  elif [ -f "/usr/bin/$binary" ]; then
-    # Fallback to system default (should be PostgreSQL 17 after installation)
-    echo "/usr/bin/$binary"
-  elif command -v "$binary" >/dev/null 2>&1; then
-    # Use whatever is in PATH
-    command -v "$binary"
-  else
-    echo "$binary"  # Last resort - let the shell find it
+  
+  # First, try to find the latest PostgreSQL version in standard locations
+  # Look for /usr/lib/postgresql/*/bin/$binary and pick the highest version
+  local latest_version=""
+  local latest_path=""
+  
+  # Find all PostgreSQL versions in /usr/lib/postgresql/
+  if [ -d "/usr/lib/postgresql" ]; then
+    for pg_dir in /usr/lib/postgresql/*/bin/"$binary"; do
+      if [ -f "$pg_dir" ]; then
+        # Extract version number from path (e.g., /usr/lib/postgresql/17/bin/pg_dump -> 17)
+        local version=$(echo "$pg_dir" | sed -n 's|/usr/lib/postgresql/\([0-9.]*\)/bin/.*|\1|p')
+        # Compare versions (simple numeric comparison for major versions)
+        local major_version=$(echo "$version" | cut -d. -f1)
+        if [ -z "$latest_version" ] || [ "$major_version" -gt "$(echo "$latest_version" | cut -d. -f1)" ] 2>/dev/null || \
+           ([ "$major_version" -eq "$(echo "$latest_version" | cut -d. -f1)" ] 2>/dev/null && [ "$version" \> "$latest_version" ] 2>/dev/null); then
+          latest_version="$version"
+          latest_path="$pg_dir"
+        fi
+      fi
+    done
   fi
+  
+  # If we found a versioned binary, use it
+  if [ -n "$latest_path" ] && [ -f "$latest_path" ]; then
+    echo "$latest_path"
+    return 0
+  fi
+  
+  # Fallback to system default locations
+  if [ -f "/usr/bin/$binary" ]; then
+    echo "/usr/bin/$binary"
+    return 0
+  fi
+  
+  # Use whatever is in PATH
+  if command -v "$binary" >/dev/null 2>&1; then
+    command -v "$binary"
+    return 0
+  fi
+  
+  # Last resort - let the shell find it
+  echo "$binary"
 }
 
 # Force IPv4 resolution for database connection strings

@@ -2,7 +2,17 @@
 
 ## 📋 Overview
 
-This document outlines the plan for modernizing and improving the standalone backup script `0_backup_supabase_lighthouse_db.sh` to align with current codebase patterns, ensure PostgreSQL version compatibility, and add comprehensive backup features.
+This document outlines the plan for modernizing and improving the backup system. The dual backup structure has been implemented and integrated into `.github/workflows/backup.yaml`.
+
+**Status**: ✅ **IMPLEMENTED** - Dual backup structure integrated into `.github/workflows/backup.yaml`
+
+The workflow now creates both:
+- Schema-level `.dump` files (custom format) for fast full schema restoration
+- Per-table SQL files (`schema.sql` + `data.sql`) for selective restoration
+
+The workflow now creates both:
+- Schema-level `.dump` files (custom format) for fast full schema restoration
+- Per-table SQL files (`schema.sql` + `data.sql`) for selective restoration
 
 ---
 
@@ -18,12 +28,12 @@ This document outlines the plan for modernizing and improving the standalone bac
 
 ## 📊 Current State Analysis
 
-### Current Script Characteristics
-- **Location**: `.github/scripts/0_backup_supabase_lighthouse_db.sh`
-- **Purpose**: Full logical backup utility for Supabase Lighthouse Postgres databases
-- **Dependencies**: Azure Key Vault, PostgreSQL client tools
-- **Output Format**: Custom format dumps (`.dump` files)
-- **Environments**: Supports prod/dev/both via Azure Key Vault
+### Implementation Characteristics
+- **Location**: `.github/workflows/backup.yaml` + `.github/scripts/backup.sh`
+- **Purpose**: Full logical backup utility for Supabase databases with dual backup structure
+- **Dependencies**: PostgreSQL client tools (latest version auto-detected)
+- **Output Format**: Schema-level `.dump` files + per-table SQL files (dual structure)
+- **Environments**: Works with any Supabase database via connection string
 
 ### Current Issues
 1. ❌ PostgreSQL version not explicitly aligned with database (uses system default)

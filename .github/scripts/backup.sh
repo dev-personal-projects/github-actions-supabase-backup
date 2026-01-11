@@ -85,6 +85,93 @@ create_archive_directory() {
   echo "$archive_path"
 }
 
+# Backup schema as .dump file (custom format)
+# Creates a complete schema dump including all tables, indexes, constraints, etc.
+backup_schema_dump() {
+  local DB_URL="${1:-}"
+  local SCHEMA="${2:-}"
+  local TIMESTAMP="${3:-}"
+  local OUTPUT_DIR="${4:-}"
+
+  [ -z "$DB_URL" ] || [ -z "$SCHEMA" ] || [ -z "$OUTPUT_DIR" ] && {
+    echo "Error: All parameters are required" >&2
+    return 1
+  }
+
+  [ -z "$TIMESTAMP" ] && TIMESTAMP=$(generate_backup_timestamp)
+
+  local PG_DUMP=$(get_pg_binary "pg_dump")
+  local dump_file="${OUTPUT_DIR}/${SCHEMA}/${SCHEMA}_schema_${TIMESTAMP}.dump"
+  mkdir -p "${OUTPUT_DIR}/${SCHEMA}"
+
+  echo "Creating schema dump for ${SCHEMA}..."
+
+  # Force IPv4 connection
+  DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
+
+  # Acquire connection slot
+  local SLOT_FILE=""
+  SLOT_FILE=$(acquire_connection_slot) || SLOT_FILE=""
+  if [ -z "$SLOT_FILE" ]; then
+    echo "Warning: Failed to acquire connection slot for schema dump $SCHEMA, continuing without slot..." >&2
+  else
+    trap "release_connection_slot '$SLOT_FILE'" EXIT
+  fi
+
+  local ERROR_FILE=$(mktemp)
+  local retry_count=0
+  local max_retries=3
+  local retry_delay=2
+
+  while [ $retry_count -lt $max_retries ]; do
+    if $PG_DUMP "$DB_URL" \
+      --schema="$SCHEMA" \
+      --format=custom \
+      --file="$dump_file" \
+      --no-owner \
+      --no-privileges \
+      --blobs \
+      --no-sync \
+      --verbose 2> "$ERROR_FILE"; then
+      break  # Success
+    fi
+
+    # Check if it's a connection limit error
+    if [ -s "$ERROR_FILE" ] && grep -qiE "(Max client connections|MaxClientsInSessionMode)" "$ERROR_FILE"; then
+      ((retry_count++))
+      if [ $retry_count -lt $max_retries ]; then
+        echo "Connection limit reached, retrying schema dump for $SCHEMA ($retry_count/$max_retries) after ${retry_delay}s..." >&2
+        sleep $retry_delay
+        retry_delay=$((retry_delay * 2))  # Exponential backoff
+        continue
+      fi
+    fi
+
+    # Not a retryable error or max retries reached
+    echo "Error: Failed to create schema dump for $SCHEMA" >&2
+    if [ -s "$ERROR_FILE" ]; then
+      echo "pg_dump error:" >&2
+      cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    fi
+    rm -f "$ERROR_FILE" "$dump_file" 2>/dev/null
+    [ -n "$SLOT_FILE" ] && release_connection_slot "$SLOT_FILE"
+    trap - EXIT
+    return 1
+  done
+
+  rm -f "$ERROR_FILE"
+  [ -n "$SLOT_FILE" ] && release_connection_slot "$SLOT_FILE"
+  trap - EXIT
+
+  if [ -f "$dump_file" ]; then
+    echo "Schema dump completed for ${SCHEMA}: ${dump_file}"
+    return 0
+  else
+    echo "Error: Schema dump file not created for $SCHEMA" >&2
+    return 1
+  fi
+}
+
 # Backup database roles
 backup_roles() {
   local DB_URL="${1:-}"

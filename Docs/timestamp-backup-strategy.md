@@ -13,7 +13,7 @@ This document defines the strategy for implementing timestamped backups to uniqu
 **Goal:**
 - Every backup should have clear timestamp identification
 - Unique way to differentiate different backups using timestamped folder names
-- Support both workflow (GitHub Actions) and standalone script scenarios
+- Integrated into GitHub Actions workflow (dual backup structure: schema .dump files + per-table files)
 - Maintain backward compatibility where possible
 
 ---
@@ -133,10 +133,9 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H-%M-%SZ")
    - Solution: Timestamp precision to the second usually sufficient
    - If needed, can append sequence number: `{timestamp}--{repo}--{event}--{sha}--2/`
 
-2. **Missing Information (Standalone Script):**
-   - Missing SHA: Use `standalone`
-   - Missing repo: Use `standalone`
-   - Missing event: Use `standalone`
+2. **Missing Information:**
+   - All information is available from GitHub Actions context
+   - No missing information scenarios in workflow
 
 3. **Duplicate Prevention:**
    - Check if archive directory already exists
@@ -260,14 +259,14 @@ ARCHIVE_NAME="${BACKUP_TIMESTAMP}--${GITHUB_REPOSITORY}--${GITHUB_EVENT_NAME}--$
 
 ---
 
-### Phase 3: Standalone Script Integration
+### Phase 3: Dual Backup Structure Integration
 
-**Goal:** Ensure standalone script (`0_backup_supabase_lighthouse_db.sh`) also generates timestamps.
+**Goal:** Ensure workflow creates both schema-level .dump files and per-table files with timestamps.
 
 **Tasks:**
-1. Add timestamp generation to standalone script (at start of backup)
-2. Use same archive naming format for consistency
-3. Handle standalone-specific values (e.g., `trigger_event: "standalone"`)
+1. Add `backup_schema_dump()` function to backup.sh
+2. Update workflow to create schema .dump files before per-table backups
+3. Use same timestamp format for both backup types
 
 **Script Changes:**
 ```bash
@@ -326,10 +325,10 @@ mkdir -p "backups/archive/$ARCHIVE_NAME"
 - [ ] Test archive naming with various scenarios (workflow, standalone, missing info)
 - [ ] Update documentation with naming format
 
-### Phase 3: Standalone Script
-- [ ] Add timestamp generation to standalone script
-- [ ] Test standalone script with timestamp features
-- [ ] Update standalone script documentation
+### Phase 3: Dual Backup Structure
+- [x] Add `backup_schema_dump()` function to backup.sh
+- [x] Update workflow to create schema .dump files
+- [x] Test dual backup structure in workflow
 
 ### Phase 4: Workflow Integration
 - [ ] Add timestamp generation step to workflow
@@ -357,7 +356,7 @@ mkdir -p "backups/archive/$ARCHIVE_NAME"
 - One timestamp represents the entire backup point
 - Timestamp visible in folder name - easy to identify backups
 - Simple, clean, and maintainable
-- Works for both workflow and standalone script
+- Integrated into workflow with dual backup structure
 
 ---
 

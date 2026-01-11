@@ -404,7 +404,7 @@ The system will automatically detect and backup all 33 tables across 3 schemas.
 For detailed architecture, implementation plans, and test scenarios, see:
 - [System Plan](./Docs/system-plan.md) - Comprehensive planning document with architecture, requirements, and test scenarios
 - [Development Plan](./Docs/development-plan.md) - Development phases, tasks, and implementation details
-- [Script Improvement Plan](./Docs/script-improvement-plan.md) - Plan for modernizing standalone backup script
+- [Script Improvement Plan](./Docs/script-improvement-plan.md) - Dual backup structure implementation (schema .dump files + per-table files)
 - [Full Backup Policy](./Docs/full-backup-policy.md) - Complete database backup policy (includes ALL Supabase schemas)
 
 ## Contributing

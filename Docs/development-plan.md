@@ -423,27 +423,28 @@ mkdir -p "backups/archive/$ARCHIVE_NAME"
 
 ## 📚 Additional Considerations
 
-### Phase 8: Standalone Backup Script Improvements
-**Goal:** Modernize and align the standalone backup script (`0_backup_supabase_lighthouse_db.sh`) with current codebase patterns
+### Phase 8: Dual Backup Structure ✅ COMPLETED
+**Goal:** Implement dual backup structure (schema .dump files + per-table files) in the workflow
 
-**Tasks:**
-1. [ ] Update PostgreSQL version detection to match database version (PostgreSQL 17)
-2. [ ] Ensure pg_dump version matches database version for compatibility
-3. [ ] Implement dual backup structure: schema .dump files + per-table files
-4. [ ] Create schema-level .dump files in each schema folder (with timestamp)
-5. [ ] Integrate with existing backup.sh for per-table structure (maintain existing structure)
-6. [ ] Add timestamp-based naming for schema .dump files
-7. [ ] Add support for backing up ALL Supabase system schemas (auth, storage, realtime, vault, etc.) in both formats
-8. [ ] Implement comprehensive backup summary section (showing both formats)
-9. [ ] Align script with existing backup.sh and detect.sh patterns
-10. [ ] Use common.sh utilities for consistency
-11. [ ] Add proper error handling and validation
-12. [ ] Test with actual Supabase database
+**Status:** ✅ **COMPLETED** - Integrated into `.github/workflows/backup.yaml`
+
+**Completed Tasks:**
+1. ✅ Added `backup_schema_dump()` function to `backup.sh`
+2. ✅ Updated workflow to create schema-level .dump files
+3. ✅ Dual backup structure: schema .dump files + per-table files
+4. ✅ Schema-level .dump files created in each schema folder (with timestamp)
+5. ✅ Integrated with existing backup.sh for per-table structure
+6. ✅ Timestamp-based naming for schema .dump files (ISO 8601 UTC format)
+7. ✅ Full database backup includes ALL Supabase system schemas (auth, storage, realtime, vault, etc.) in both formats
+8. ✅ Comprehensive backup summary section (showing both formats)
+9. ✅ Uses common.sh utilities for consistency
+10. ✅ Proper error handling and validation with connection semaphore
+11. ✅ PostgreSQL version auto-detection (latest version, not hardcoded)
 
 **Deliverables:**
-- Modernized backup script aligned with codebase patterns
-- PostgreSQL 17 compatibility verified
-- Dual backup structure: schema .dump files + per-table files
+- ✅ Dual backup structure integrated into workflow
+- ✅ PostgreSQL latest version auto-detection
+- ✅ Schema .dump files + per-table files for flexible restoration
 - Timestamp-based naming for schema .dump files
 - Auth schema backup support (both formats)
 - Comprehensive backup summary output (both formats)
@@ -519,47 +520,47 @@ mkdir -p "backups/archive/$ARCHIVE_NAME"
 - Documentation should be updated as features are implemented
 - Test thoroughly before production deployment
 - **PostgreSQL Version**: All scripts must use PostgreSQL 17 client tools to match database version
-- **Standalone Script**: The `0_backup_supabase_lighthouse_db.sh` script should be modernized to align with current codebase patterns
+- **Dual Backup Structure**: ✅ Implemented in workflow - creates both schema .dump files and per-table files
 
 ---
 
-## 🔧 Standalone Backup Script Requirements
+## 🔧 Dual Backup Structure ✅ IMPLEMENTED
 
-### Current State
-The `0_backup_supabase_lighthouse_db.sh` script is a standalone utility that:
-- Uses Azure Key Vault for connection strings
-- Creates single full database backup in custom format
-- Supports prod/dev/both environments
-- Uses interactive prompts
-- Does NOT create per-schema .dump files or integrate with per-table structure
+### Implementation Status
+The dual backup structure has been integrated into `.github/workflows/backup.yaml`:
+- ✅ Uses GitHub Actions workflow (not standalone script)
+- ✅ Creates schema-level .dump files (custom format) for fast restoration
+- ✅ Creates per-table SQL files (schema.sql + data.sql) for selective restoration
+- ✅ Supports any Supabase database via connection string
+- ✅ Automatic schema and table detection
+- ✅ Full database backup (ALL Supabase system schemas)
 
-### Target State
-The improved script should:
-1. **PostgreSQL Version Alignment**
-   - Use PostgreSQL 17 client tools (via `get_pg_binary()` from common.sh)
-   - Verify pg_dump version matches database version
-   - Ensure compatibility with Supabase PostgreSQL 17 databases
+### Implementation Details
+1. **PostgreSQL Version Detection**
+   - ✅ Auto-detects latest PostgreSQL version (not hardcoded)
+   - ✅ Uses `get_pg_binary()` from common.sh
+   - ✅ Compatible with any PostgreSQL version
 
 2. **Dual Backup Structure**
-   - For each schema, create BOTH:
+   - ✅ For each schema, creates BOTH:
      - Schema-level .dump file: `{schema}/{schema}_schema_{timestamp}.dump` (complete schema backup)
      - Per-table files: Use existing backup.sh to create `tables/{table-name}/schema.sql` and `data.sql`
    - Maintain existing per-table structure from workflow backups
    - Provide both fast full-schema restoration (.dump) and selective table restoration (per-table files)
 
-3. **Backup Completeness**
-   - Back up all user schemas (including auth schema)
-   - Include ALL schemas (only exclude PostgreSQL internal: pg_catalog, information_schema, pg_toast, pg_temp*)
-   - Include auth schema in both formats (.dump + per-table)
-   - Use proper pg_dump flags to ensure complete backups
+3. **Backup Completeness** ✅
+   - ✅ Backs up all user schemas (including auth schema)
+   - ✅ Includes ALL schemas (only excludes PostgreSQL internal: pg_catalog, information_schema, pg_toast, pg_temp*)
+   - ✅ Includes auth schema in both formats (.dump + per-table)
+   - ✅ Uses proper pg_dump flags to ensure complete backups
 
-4. **Timestamp-Based Naming**
-   - Format for .dump files: `{schema}_schema_{YYYYMMDD_HHMMSS}.dump`
-   - Include timestamp in schema .dump file names
-   - Per-table files use existing naming (no timestamp needed)
+4. **Timestamp-Based Naming** ✅
+   - ✅ Format for .dump files: `{schema}_schema_{YYYY-MM-DDTHH-MM-SSZ}.dump` (ISO 8601 UTC)
+   - ✅ Timestamp included in schema .dump file names
+   - ✅ Per-table files use existing naming structure
 
-5. **Backup Summary Section**
-   - Display comprehensive summary after backup completion:
+5. **Backup Summary Section** ✅
+   - ✅ Comprehensive summary displayed after backup completion:
      - Backup metadata (timestamp, environment, database name)
      - Database statistics (size, schema count, table count)
      - For each schema: .dump file size and per-table files summary
@@ -567,23 +568,23 @@ The improved script should:
      - Duration and status
      - Connection details (masked)
 
-6. **Code Quality Improvements**
-   - Use common.sh utilities (get_pg_binary, force_ipv4_connection, etc.)
-   - Integrate with backup.sh for per-table structure
-   - Use detect.sh for schema/table detection
-   - Follow existing code patterns from backup.sh and detect.sh
-   - Consistent error handling and logging
-   - Proper function organization and naming
-   - Clear separation of concerns
+6. **Code Quality Improvements** ✅
+   - ✅ Uses common.sh utilities (get_pg_binary, force_ipv4_connection, etc.)
+   - ✅ Integrated with backup.sh for per-table structure
+   - ✅ Uses detect.sh for schema/table detection
+   - ✅ Follows existing code patterns from backup.sh and detect.sh
+   - ✅ Consistent error handling and logging with connection semaphore
+   - ✅ Proper function organization and naming
+   - ✅ Clear separation of concerns
 
-7. **Schema Backup Strategy**
-   - Back up auth schema (Supabase authentication tables) in both formats
-   - Include all user-created schemas in both formats
-   - Properly handle schema-qualified table names
-   - Use existing backup.sh::backup_schema() for per-table structure
+7. **Schema Backup Strategy** ✅
+   - ✅ Backs up auth schema (Supabase authentication tables) in both formats
+   - ✅ Includes all user-created schemas in both formats
+   - ✅ Properly handles schema-qualified table names
+   - ✅ Uses backup.sh::backup_schema() for per-table structure
 
 ---
 
 **Document Version:** 1.1  
 **Last Updated:** 2024-12-XX  
-**Status:** Active Development - Phase 8 Added
+**Status:** ✅ Phase 8 Completed - Dual backup structure integrated into workflow

@@ -231,6 +231,7 @@ jobs:
           trap "cleanup_global_semaphore" EXIT
 
           SCHEMAS="${{ steps.detect-schemas.outputs.schemas }}"
+          BACKUP_TIMESTAMP="${{ steps.timestamp.outputs.timestamp }}"
 
           if [ -z "$SCHEMAS" ]; then
             echo "No schemas detected. Exiting."
@@ -238,13 +239,34 @@ jobs:
             exit 0
           fi
 
-          # Backup schemas in parallel for better performance
-          # Run all schemas in parallel - connection semaphore will limit total connections
-          SCHEMA_COUNT=0
-          SCHEMA_PIDS=()
-
           # Get latest path from previous step
           LATEST_PATH="${{ steps.latest-setup.outputs.latest_path }}"
+
+          # Step 1: Create schema-level .dump files (dual backup structure)
+          echo "Creating schema-level .dump files..."
+          SCHEMA_DUMP_PIDS=()
+          for schema in $SCHEMAS; do
+            [ -z "$schema" ] && continue
+            
+            # Create schema dump in background
+            (
+              set +e
+              backup_schema_dump "$SUPABASE_DB_URL" "$schema" "$BACKUP_TIMESTAMP" "$LATEST_PATH" || {
+                echo "Warning: Failed to create schema dump for $schema" >&2
+              }
+            ) &
+            SCHEMA_DUMP_PIDS+=($!)
+          done
+
+          # Wait for all schema dumps to complete
+          for pid in "${SCHEMA_DUMP_PIDS[@]}"; do
+            wait "$pid" 2>/dev/null || true
+          done
+
+          # Step 2: Backup schemas and tables (per-table structure)
+          echo "Backing up tables in each schema..."
+          SCHEMA_COUNT=0
+          SCHEMA_PIDS=()
 
           # Start all schema backups in parallel
           for schema in $SCHEMAS; do
@@ -266,7 +288,7 @@ jobs:
             wait "$pid" 2>/dev/null || true
           done
 
-          echo "Completed backup for $SCHEMA_COUNT schema(s)"
+          echo "Completed backup for $SCHEMA_COUNT schema(s) (with dual structure: .dump files + per-table files)"
 
           # Cleanup semaphore
           cleanup_global_semaphore
