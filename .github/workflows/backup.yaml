@@ -146,6 +146,7 @@ jobs:
           set +e  # Disable exit on error for parallel execution
           START_TIME=$(date +%s)
           source .github/scripts/backup.sh
+          set +e  # Re-disable exit on error after sourcing (backup.sh sets -e)
           SCHEMAS="${{ steps.detect-schemas.outputs.schemas }}"
 
           if [ -z "$SCHEMAS" ]; then

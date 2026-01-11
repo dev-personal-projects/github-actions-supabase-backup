@@ -221,8 +221,8 @@ backup_schema() {
       fi
     done
     
-    # Re-enable exit on error
-    set -e
+    # Don't re-enable exit on error - let caller control error handling
+    # set -e  # Commented out to allow caller to control error handling
   else
     # Sequential execution for single table or when parallel disabled
     for table in "${TABLE_LIST[@]}"; do
@@ -233,7 +233,7 @@ backup_schema() {
         ((FAILED_COUNT++))
         echo "Warning: Failed to backup table $SCHEMA.$table, continuing with other tables..." >&2
       fi
-      set -e
+      # Don't re-enable exit on error - let caller control error handling
     done
   fi
 
