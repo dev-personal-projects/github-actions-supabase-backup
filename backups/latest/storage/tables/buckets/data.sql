@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 90tXUwMnUpAZWGqkNcxRr9bT2LcMzfJegee9CiZ3RpfraBBnJSriMIIk9Jd6oPY
+\restrict DGeCrdRL3FRBeiNiMs50NA38zLZvEIzZHUQVHr7SqcKc6Ps0AnbAMmvTcDXrguF
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY storage.buckets (id, name, owner, created_at, updated_at, public, avif_auto
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 90tXUwMnUpAZWGqkNcxRr9bT2LcMzfJegee9CiZ3RpfraBBnJSriMIIk9Jd6oPY
+\unrestrict DGeCrdRL3FRBeiNiMs50NA38zLZvEIzZHUQVHr7SqcKc6Ps0AnbAMmvTcDXrguF
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict jwAhZg7hmarG7JabljOdXRdMkrE3jGxCTgdLVuhGehhfwWhq3yaKX2tGnnUrVaQ
+\restrict PzSKtBwmKrx1TVcfdxLeX9FXm3U54BNWxbYrwiWnGbieFRfSBcBBeC2mDJF9EKm
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY storage.buckets_analytics (name, type, format, created_at, updated_at, id, 
 -- PostgreSQL database dump complete
 --
 
-\unrestrict jwAhZg7hmarG7JabljOdXRdMkrE3jGxCTgdLVuhGehhfwWhq3yaKX2tGnnUrVaQ
+\unrestrict PzSKtBwmKrx1TVcfdxLeX9FXm3U54BNWxbYrwiWnGbieFRfSBcBBeC2mDJF9EKm
 

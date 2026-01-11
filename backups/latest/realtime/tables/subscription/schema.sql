@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict fEDpV89jiafW2wDkPjOWFuyYloMmUvvCV7aMLmxwQdPADhQqhTLNPJB7L7KqN8T
+\restrict welYSMVg0PugWLOm4thj0IwjH33jpNiG1bLNuFb44W9zxofJmRHZWopv4BgXzFb
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -83,5 +83,5 @@ CREATE TRIGGER tr_check_filters BEFORE INSERT OR UPDATE ON realtime.subscription
 -- PostgreSQL database dump complete
 --
 
-\unrestrict fEDpV89jiafW2wDkPjOWFuyYloMmUvvCV7aMLmxwQdPADhQqhTLNPJB7L7KqN8T
+\unrestrict welYSMVg0PugWLOm4thj0IwjH33jpNiG1bLNuFb44W9zxofJmRHZWopv4BgXzFb
 

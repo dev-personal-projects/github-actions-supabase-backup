@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict hH2w9kJg0BGIU9xUUxfTp9kB5lKxYabWOmuN21g9quPdauKmB282mZoNeqwze5w
+\restrict mvQKmyfSghIOegYDjgZknLV02xEUDmkc9jtycpGWZEsY2JOngp73AQqWf8p15U6
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -38,5 +38,5 @@ SELECT pg_catalog.setval('realtime.subscription_id_seq', 1, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict hH2w9kJg0BGIU9xUUxfTp9kB5lKxYabWOmuN21g9quPdauKmB282mZoNeqwze5w
+\unrestrict mvQKmyfSghIOegYDjgZknLV02xEUDmkc9jtycpGWZEsY2JOngp73AQqWf8p15U6
 
