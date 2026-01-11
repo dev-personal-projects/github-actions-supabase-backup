@@ -70,7 +70,7 @@ url_decode() {
 # Global connection semaphore for coordinating database connections across all schemas
 # Uses file-based locking to limit total concurrent connections
 GLOBAL_SEMAPHORE_DIR="${GLOBAL_SEMAPHORE_DIR:-/tmp/backup_semaphore_$$}"
-GLOBAL_MAX_CONNECTIONS="${GLOBAL_MAX_CONNECTIONS:-20}"  # Total concurrent connections across all schemas
+GLOBAL_MAX_CONNECTIONS="${GLOBAL_MAX_CONNECTIONS:-10}"  # Total concurrent connections across all schemas
 
 # Initialize global semaphore
 init_global_semaphore() {
@@ -82,7 +82,9 @@ init_global_semaphore() {
 # Acquire a connection slot (blocking)
 # Uses atomic file operations to coordinate across processes
 acquire_connection_slot() {
-  local max_wait=300  # Maximum wait time in seconds (5 minutes)
+  # Allow shorter timeout for table detection (faster queries)
+  # Use shorter timeout if DETECTION_TIMEOUT is set, otherwise default to 5 minutes
+  local max_wait=${DETECTION_TIMEOUT:-300}  # Default: 5 minutes, can be overridden for faster operations
   local waited=0
   local slot_num=0
   

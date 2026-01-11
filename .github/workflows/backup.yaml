@@ -144,7 +144,8 @@ jobs:
         id: backup-schemas
         env:
           BACKUP_MAX_PARALLEL: 8 # Number of parallel table backups per schema
-          GLOBAL_MAX_CONNECTIONS: 6 # Total concurrent database connections across all schemas (conservative to avoid Supabase limits)
+          GLOBAL_MAX_CONNECTIONS: 10 # Total concurrent database connections across all schemas
+          # Note: This includes connections for table detection queries, so 10 allows for better parallelism
         run: |
           set +e  # Disable exit on error for parallel execution
           START_TIME=$(date +%s)
@@ -155,7 +156,7 @@ jobs:
           # Initialize global connection semaphore to limit total concurrent connections
           # Use a fixed semaphore directory that all background jobs can access
           export GLOBAL_SEMAPHORE_DIR="/tmp/backup_semaphore_$$"
-          export GLOBAL_MAX_CONNECTIONS="${GLOBAL_MAX_CONNECTIONS:-15}"
+          export GLOBAL_MAX_CONNECTIONS="${GLOBAL_MAX_CONNECTIONS:-10}"
           init_global_semaphore
           trap "cleanup_global_semaphore" EXIT
 

@@ -91,6 +91,7 @@ detect_schemas() {
 }
 
 # Detect tables in a specific schema
+# Uses connection semaphore if available to coordinate with backup operations
 detect_tables() {
   local DB_URL="${1:-}"
   local SCHEMA="${2:-}"
@@ -102,9 +103,35 @@ detect_tables() {
 
   DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
 
+  # Acquire connection slot if semaphore is available (for coordination with backups)
+  # This prevents connection limit issues when multiple schemas detect tables in parallel
+  local SLOT_FILE=""
+  if [ -n "${GLOBAL_SEMAPHORE_DIR:-}" ] && [ -d "$GLOBAL_SEMAPHORE_DIR" ]; then
+    # Use shorter timeout for table detection (30 seconds - detection queries are fast)
+    export DETECTION_TIMEOUT=30
+    SLOT_FILE=$(acquire_connection_slot 2>/dev/null || echo "")
+    unset DETECTION_TIMEOUT
+    if [ -z "$SLOT_FILE" ]; then
+      # If semaphore acquisition fails, retry with exponential backoff (max 5s total)
+      local retry=0
+      local max_retries=3
+      local delay=0.5
+      while [ $retry -lt $max_retries ]; do
+        sleep $delay
+        export DETECTION_TIMEOUT=30
+        SLOT_FILE=$(acquire_connection_slot 2>/dev/null || echo "")
+        unset DETECTION_TIMEOUT
+        [ -n "$SLOT_FILE" ] && break
+        delay=$((delay * 2))
+        ((retry++))
+      done
+    fi
+  fi
+
   local PSQL=$(get_pg_binary "psql")
   local QUERY_OUTPUT=$(mktemp)
   local QUERY_ERROR=$(mktemp)
+  local EXIT_CODE=0
   
   if ! $PSQL "$DB_URL" -t -A -c "
     SELECT table_name 
@@ -115,15 +142,19 @@ detect_tables() {
   " > "$QUERY_OUTPUT" 2> "$QUERY_ERROR"; then
     echo "Error: Failed to query tables in schema '$SCHEMA'" >&2
     [ -s "$QUERY_ERROR" ] && cat "$QUERY_ERROR" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
-    rm -f "$QUERY_OUTPUT" "$QUERY_ERROR"
-    exit 1
+    EXIT_CODE=1
+  else
+    # Output tables (filter out empty lines)
+    grep -v '^$' "$QUERY_OUTPUT" | while read -r table; do
+      [ -n "$table" ] && echo "$table"
+    done
   fi
   
-  grep -v '^$' "$QUERY_OUTPUT" | while read -r table; do
-    [ -n "$table" ] && echo "$table"
-  done
+  # Release connection slot if we acquired one (release immediately after query)
+  [ -n "$SLOT_FILE" ] && release_connection_slot "$SLOT_FILE" 2>/dev/null || true
   
   rm -f "$QUERY_OUTPUT" "$QUERY_ERROR"
+  [ $EXIT_CODE -ne 0 ] && exit $EXIT_CODE
 }
 
 # Main entry point for command-line usage
