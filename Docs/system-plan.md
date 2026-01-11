@@ -104,7 +104,6 @@ db-backup-actions/
 │       └── backup.yaml              # Main backup workflow
 ├── backups/
 │   ├── latest/                      # Latest backups container
-│   │   ├── latest → latest_2024-01-15T14-30-45Z/  # Symlink to most recent
 │   │   └── latest_2024-01-15T14-30-45Z/          # Current timestamped latest
 │   │       ├── roles.sql               # Database roles
 │   │       ├── public/                 # Public schema
@@ -166,7 +165,7 @@ Historical backups use a **prefix-based naming system** to distinguish different
 - Automatically archived when new backup starts (moved to `backups/archive/`)
 - Provides quick access to most recent backup
 - Same per-table structure as archive backups
-- Symlink `backups/latest/latest` → `backups/latest/latest_{timestamp}` for convenience
+- Only one timestamped latest folder exists at a time (previous moved to archive)
 
 **Archive Backups:**
 - Stored in `backups/archive/`

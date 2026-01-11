@@ -42,7 +42,6 @@ This document defines the strategy for implementing timestamped backups to uniqu
 ```
 backups/
 ├── latest/                                    # Latest backups container
-│   ├── latest → latest_2024-01-15T14-30-45Z/  # Symlink to most recent
 │   └── latest_2024-01-15T14-30-45Z/          # Current timestamped latest
 │       ├── roles.sql
 │       ├── public/

@@ -198,12 +198,6 @@ jobs:
             done
           fi
 
-          # Create symlink for convenience (latest/latest → latest/latest_{timestamp})
-          rm -f "$BACKUP_DIR/latest/latest"
-          ln -sf "$LATEST_NAME" "$BACKUP_DIR/latest/latest" 2>/dev/null || {
-            echo "Note: Could not create 'latest' symlink (Git limitation)" >&2
-          }
-
           echo "latest_path=$LATEST_PATH" >> $GITHUB_OUTPUT
           echo "latest_name=$LATEST_NAME" >> $GITHUB_OUTPUT
           echo "Created new latest folder: $LATEST_NAME"

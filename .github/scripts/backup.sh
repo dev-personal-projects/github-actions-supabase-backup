@@ -563,7 +563,6 @@ EOF
     if [ -n "$LATEST_NAME" ]; then
       cat <<EOF
    Latest (Timestamped): ${BACKUP_DIR}/latest/${LATEST_NAME}
-   Latest Symlink:       ${BACKUP_DIR}/latest/latest → ${LATEST_NAME}
 EOF
     else
       cat <<EOF

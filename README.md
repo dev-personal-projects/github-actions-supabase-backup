@@ -119,7 +119,6 @@ Backups are stored **in this repository** in the `backups/` directory. Each tabl
 ```
 backups/
 ├── latest/                      # Latest backups container
-│   ├── latest → latest_2026-01-11T20-07-50Z/  # Symlink to most recent
 │   └── latest_2026-01-11T20-07-50Z/           # Current timestamped latest
 │       ├── roles.sql               # All database roles
 │       ├── public/                 # Public schema
