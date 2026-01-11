@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict oZ6ijfnafUxXaNOhwVLdfEber6bbDX6ObTCAKwc4XSKCpstAKSzyqhjYSmqyyxu
+\restrict 5eyih5ZyrEqYHIQ6qNkR0Fd479uGvoKjmQos24QDojVT0nhdaaLb7bbAXYYSRcC
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY auth.instances (id, uuid, raw_base_config, created_at, updated_at) FROM std
 -- PostgreSQL database dump complete
 --
 
-\unrestrict oZ6ijfnafUxXaNOhwVLdfEber6bbDX6ObTCAKwc4XSKCpstAKSzyqhjYSmqyyxu
+\unrestrict 5eyih5ZyrEqYHIQ6qNkR0Fd479uGvoKjmQos24QDojVT0nhdaaLb7bbAXYYSRcC
 

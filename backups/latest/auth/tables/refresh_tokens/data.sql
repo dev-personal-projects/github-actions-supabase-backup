@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict tnguUwJTKTIQcJcKriqK1CQnaV79Lkdj5LD8JaMVeoNq4Za1JZlGBuPEgHODonV
+\restrict IYpH8AX5G4ZJuNw3TqYcoZ8SGuIYqfYLPrVFRWi9hAfLWjr5JVgasEniHb0GQeN
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -38,5 +38,5 @@ SELECT pg_catalog.setval('auth.refresh_tokens_id_seq', 108, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict tnguUwJTKTIQcJcKriqK1CQnaV79Lkdj5LD8JaMVeoNq4Za1JZlGBuPEgHODonV
+\unrestrict IYpH8AX5G4ZJuNw3TqYcoZ8SGuIYqfYLPrVFRWi9hAfLWjr5JVgasEniHb0GQeN
 

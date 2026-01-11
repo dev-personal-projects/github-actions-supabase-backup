@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict uFY91C1kixfsgcQ0U08EZxNRqDJW3Tp4d0h2MDNnOzMvgBAlO5GTVSKXbc3jZKI
+\restrict 9ruDFBSG1VXDngNAe0AvoDONv6ooSydwI2Ah7sEqHN8cCb9PifhVerPNLahl1DH
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY auth.sso_domains (id, sso_provider_id, domain, created_at, updated_at) FROM
 -- PostgreSQL database dump complete
 --
 
-\unrestrict uFY91C1kixfsgcQ0U08EZxNRqDJW3Tp4d0h2MDNnOzMvgBAlO5GTVSKXbc3jZKI
+\unrestrict 9ruDFBSG1VXDngNAe0AvoDONv6ooSydwI2Ah7sEqHN8cCb9PifhVerPNLahl1DH
 

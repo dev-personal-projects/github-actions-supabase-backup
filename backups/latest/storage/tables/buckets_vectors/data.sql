@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict AIgaAN1orgoFkcpcEna1lTH74hg8NK1XUyOoWyuaCu2Hp5kMhcuqGgA5njI9btd
+\restrict 2NX0IF9b4BkbwShFtWMau7R5plRs8ZgfdQQ9WEnEF2aj5ab6B601zoVJbRHzBUR
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY storage.buckets_vectors (id, type, created_at, updated_at) FROM stdin;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict AIgaAN1orgoFkcpcEna1lTH74hg8NK1XUyOoWyuaCu2Hp5kMhcuqGgA5njI9btd
+\unrestrict 2NX0IF9b4BkbwShFtWMau7R5plRs8ZgfdQQ9WEnEF2aj5ab6B601zoVJbRHzBUR
 

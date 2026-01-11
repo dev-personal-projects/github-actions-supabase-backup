@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict zaS6UQuItcE1pdPfgaKa6NVIy3O0e9egybltbgRATbkXca7dgW6BsAL3FfdGR9d
+\restrict vCeZkeeYGoQyyq78QMsTmwKYkboew6zIZp6LmdO0bfDhbxrdHgBrcvu1RSV7UHI
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -42,5 +42,5 @@ SELECT pg_catalog.setval('lh_payproof.primary_approvers_primary_approver_id_seq'
 -- PostgreSQL database dump complete
 --
 
-\unrestrict zaS6UQuItcE1pdPfgaKa6NVIy3O0e9egybltbgRATbkXca7dgW6BsAL3FfdGR9d
+\unrestrict vCeZkeeYGoQyyq78QMsTmwKYkboew6zIZp6LmdO0bfDhbxrdHgBrcvu1RSV7UHI
 

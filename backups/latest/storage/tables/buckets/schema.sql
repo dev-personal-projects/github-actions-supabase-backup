@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict gy1iv1dQxZlrIUozXY6Vy7ebLTzaOxCTNJKAUCnTWcJrbh9rOCz4rGI62o9qmBl
+\restrict UwSjAloH50pwNlCGIGeAz4jEyIcAekuvn1h82l3X3eUr6duJlcKAGRSIh6emhvA
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -79,5 +79,5 @@ ALTER TABLE storage.buckets ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict gy1iv1dQxZlrIUozXY6Vy7ebLTzaOxCTNJKAUCnTWcJrbh9rOCz4rGI62o9qmBl
+\unrestrict UwSjAloH50pwNlCGIGeAz4jEyIcAekuvn1h82l3X3eUr6duJlcKAGRSIh6emhvA
 

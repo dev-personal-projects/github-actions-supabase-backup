@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict aKhQH8G1DPpAIYXJVyBoaeFn9INqZebYDAfDpSryc8xoMAWbqSDUB4CbpY9ReIk
+\restrict hJmZfCSReNn2lN5669unFMa9HUyIxoGWjQMkcUggVBLofAGf8niP1JSOgZlBQs3
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY storage.vector_indexes (id, name, bucket_id, data_type, dimension, distance
 -- PostgreSQL database dump complete
 --
 
-\unrestrict aKhQH8G1DPpAIYXJVyBoaeFn9INqZebYDAfDpSryc8xoMAWbqSDUB4CbpY9ReIk
+\unrestrict hJmZfCSReNn2lN5669unFMa9HUyIxoGWjQMkcUggVBLofAGf8niP1JSOgZlBQs3
 

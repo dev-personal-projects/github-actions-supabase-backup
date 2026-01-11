@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict bNQJOy8HsHffKni490TOmoYOdfPQsCEprsXIJJrdGEIJZzKqfMMPkm84FufncoQ
+\restrict 0bRa3Fi2z9jM2fpo1C6z7GpEr0flORWh4Eb3ee2cSivxMdmOLfOJKv0faTOBNxT
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY auth.audit_log_entries (instance_id, id, payload, created_at, ip_address) F
 -- PostgreSQL database dump complete
 --
 
-\unrestrict bNQJOy8HsHffKni490TOmoYOdfPQsCEprsXIJJrdGEIJZzKqfMMPkm84FufncoQ
+\unrestrict 0bRa3Fi2z9jM2fpo1C6z7GpEr0flORWh4Eb3ee2cSivxMdmOLfOJKv0faTOBNxT
 

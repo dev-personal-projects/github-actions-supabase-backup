@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Clr2hnYl9Phq8J5ldElMIRwG7zVQpN6v9fW9d0KHiKMSfddPVZuNCTBaNNrLYgw
+\restrict PgFeHL3kh9lOUQGzVHdcifR6sB1ezBkqPkS2erbtGc9x3aKYNPmursIlcSPtCcA
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -40,5 +40,5 @@ SELECT pg_catalog.setval('lh_payproof.configuration_configuration_id_seq', 2, tr
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Clr2hnYl9Phq8J5ldElMIRwG7zVQpN6v9fW9d0KHiKMSfddPVZuNCTBaNNrLYgw
+\unrestrict PgFeHL3kh9lOUQGzVHdcifR6sB1ezBkqPkS2erbtGc9x3aKYNPmursIlcSPtCcA
 

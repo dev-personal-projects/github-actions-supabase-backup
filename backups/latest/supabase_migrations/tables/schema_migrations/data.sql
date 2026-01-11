@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict aWEe1x4ULALCez26g7BqxN5tm1KA4ZA28IfotFHYCnNkJexaYO8Autcd7xEB6o3
+\restrict ET8tFnE8Vqqmhse5GwHzIS7nlXWxDHlxehM5LecOFaDc6gjX4gPsCXpXrxndBWo
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -32,5 +32,5 @@ COPY supabase_migrations.schema_migrations (version, statements, name, created_b
 -- PostgreSQL database dump complete
 --
 
-\unrestrict aWEe1x4ULALCez26g7BqxN5tm1KA4ZA28IfotFHYCnNkJexaYO8Autcd7xEB6o3
+\unrestrict ET8tFnE8Vqqmhse5GwHzIS7nlXWxDHlxehM5LecOFaDc6gjX4gPsCXpXrxndBWo
 

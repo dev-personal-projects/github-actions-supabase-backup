@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 0YuFcjDQ55DcBR2t65dNIhEjxWKVd8Y4c0Igu7hwY3XMTu5rYVZQpcc6dncyXlS
+\restrict nDVjxhYCfUWK8pFuLRWUCYbm2FYquYipNxR6Lp1WZTUTJMW49dWPxaudImtntsh
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY vault.secrets (id, name, description, secret, key_id, nonce, created_at, up
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 0YuFcjDQ55DcBR2t65dNIhEjxWKVd8Y4c0Igu7hwY3XMTu5rYVZQpcc6dncyXlS
+\unrestrict nDVjxhYCfUWK8pFuLRWUCYbm2FYquYipNxR6Lp1WZTUTJMW49dWPxaudImtntsh
 

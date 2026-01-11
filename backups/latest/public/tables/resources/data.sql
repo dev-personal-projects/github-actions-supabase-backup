@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 4dDeCEd7LwuT96cReyzMf4lTchx8OUgKTRRcybpb1kCMFvaf478vlWyk01C89B5
+\restrict 9qD5ivTbTqvfJZjoLyLZRZkMIJhWrjXY32YJb43Pg9pwGZ2KdFosoyZ2CWnaJ7I
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -44,5 +44,5 @@ SELECT pg_catalog.setval('public.resources_res_id_seq', 6, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 4dDeCEd7LwuT96cReyzMf4lTchx8OUgKTRRcybpb1kCMFvaf478vlWyk01C89B5
+\unrestrict 9qD5ivTbTqvfJZjoLyLZRZkMIJhWrjXY32YJb43Pg9pwGZ2KdFosoyZ2CWnaJ7I
 

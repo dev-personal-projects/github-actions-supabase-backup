@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict heBMzcGnwTxAOWtU2E1aZdw3DHyoBWq0lICLSjlp0xqKgeuOEOdHoxeAJkcgoch
+\restrict IGLcBPxkFv1wsryRGdADp8Ep0hPDPUPDXxOLLb1nBMCFX8am7wacc276vlv2n1d
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -31,5 +31,5 @@ COPY auth.mfa_challenges (id, factor_id, created_at, verified_at, ip_address, ot
 -- PostgreSQL database dump complete
 --
 
-\unrestrict heBMzcGnwTxAOWtU2E1aZdw3DHyoBWq0lICLSjlp0xqKgeuOEOdHoxeAJkcgoch
+\unrestrict IGLcBPxkFv1wsryRGdADp8Ep0hPDPUPDXxOLLb1nBMCFX8am7wacc276vlv2n1d
 

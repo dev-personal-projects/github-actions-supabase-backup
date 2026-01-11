@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict LwRiSrSsMc58nHbU1GbbOkD127ygzABLhhC3vfowAG02dWAKxMdZSvzNzaDO7H4
+\restrict mRjbAjmIRksMMqx7xEVjP6scBbS1X1JaaPutVpZavDumD1Zf87RqBLDZJy86gz8
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -42,5 +42,5 @@ SELECT pg_catalog.setval('public.companies_cmp_id_seq', 4, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict LwRiSrSsMc58nHbU1GbbOkD127ygzABLhhC3vfowAG02dWAKxMdZSvzNzaDO7H4
+\unrestrict mRjbAjmIRksMMqx7xEVjP6scBbS1X1JaaPutVpZavDumD1Zf87RqBLDZJy86gz8
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict oBnaZzk3ThhE4dPVuqtkK2x8bz8YjgKbHFUglbiWxEYorO8ke854IeCkoD04nMT
+\restrict 1mj8GuPewv2ridmwcymbSTSbyXYCAdfwT8LunbZghwoSra5A6lc0E29cjDg1Jqd
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -39,5 +39,5 @@ SELECT pg_catalog.setval('lh_billing.invoice_sequences_invoice_sequence_id_seq',
 -- PostgreSQL database dump complete
 --
 
-\unrestrict oBnaZzk3ThhE4dPVuqtkK2x8bz8YjgKbHFUglbiWxEYorO8ke854IeCkoD04nMT
+\unrestrict 1mj8GuPewv2ridmwcymbSTSbyXYCAdfwT8LunbZghwoSra5A6lc0E29cjDg1Jqd
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 7SY5PJuLgZ53IZgrUbWX26CJxfnOf2YsSdvPz1fQwcZzkYIrbhBTWRNghyYxCd9
+\restrict 2yxOEPpwj4a9FtHDO7QEAjVmcbpe4h4CBf38AhJwR7tnCv34ReFIo7lJgdzlg2X
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -42,5 +42,5 @@ SELECT pg_catalog.setval('public.customer_order_forms_ofrm_id_seq', 4, true);
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 7SY5PJuLgZ53IZgrUbWX26CJxfnOf2YsSdvPz1fQwcZzkYIrbhBTWRNghyYxCd9
+\unrestrict 2yxOEPpwj4a9FtHDO7QEAjVmcbpe4h4CBf38AhJwR7tnCv34ReFIo7lJgdzlg2X
 

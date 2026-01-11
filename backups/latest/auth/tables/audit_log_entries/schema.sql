@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict PSUyff2p3YjG8pG0IMGYeARhOagXrnRdhgoDWKEQf3XlNx8HPjIgqHC4uRO1AVf
+\restrict 5tlArfhJn8zvHFhptdMBLt8OQfuMpQvWDtOBMRqax504c9z4hNb5WaupSgLmukB
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -66,5 +66,5 @@ ALTER TABLE auth.audit_log_entries ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict PSUyff2p3YjG8pG0IMGYeARhOagXrnRdhgoDWKEQf3XlNx8HPjIgqHC4uRO1AVf
+\unrestrict 5tlArfhJn8zvHFhptdMBLt8OQfuMpQvWDtOBMRqax504c9z4hNb5WaupSgLmukB
 

@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict uTfwx0WuBLC58h9cc0LOakdRVrtnGqBohFzmZEROb7JCTejbEhdnVcimLRan2ix
+\restrict TAigfSDcIAL0fWrirOhc5KWtdJv0WB0J1XIEkERvVHQHNQAvLS5zt4AenP8FiVI
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -103,5 +103,5 @@ COPY auth.schema_migrations (version) FROM stdin;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict uTfwx0WuBLC58h9cc0LOakdRVrtnGqBohFzmZEROb7JCTejbEhdnVcimLRan2ix
+\unrestrict TAigfSDcIAL0fWrirOhc5KWtdJv0WB0J1XIEkERvVHQHNQAvLS5zt4AenP8FiVI
 

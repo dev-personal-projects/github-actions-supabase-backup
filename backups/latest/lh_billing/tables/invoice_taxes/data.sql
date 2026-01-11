@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 9shW0sWuLASOGKHbkkJplFk6MQFqJmAeJcOu6G3ns5ZOY1I1OMhI21GovEHdwLL
+\restrict Dpxy2PpDbAEjBjvDpjgc9DpFkIv284K79M0k9bdTSQkwVFiajgA2AQ99M5GZM1E
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -38,5 +38,5 @@ SELECT pg_catalog.setval('lh_billing.invoice_taxes_invoice_tax_id_seq', 1, false
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 9shW0sWuLASOGKHbkkJplFk6MQFqJmAeJcOu6G3ns5ZOY1I1OMhI21GovEHdwLL
+\unrestrict Dpxy2PpDbAEjBjvDpjgc9DpFkIv284K79M0k9bdTSQkwVFiajgA2AQ99M5GZM1E
 

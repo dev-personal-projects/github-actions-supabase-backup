@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Q47WET342Fbr9IwsEAiTNxTd0ZTaazTsVYnntXfALsgzyuuaHZxDsKsczJoqBbw
+\restrict ee4akvTWvSYASOqfb6fs05S0Be9hVWO9qhpBIYy0I1cmiNBoYgvDCkL4lIwsXD9
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.7 (Ubuntu 17.7-3.pgdg24.04+1)
@@ -59,5 +59,5 @@ ALTER TABLE storage.migrations ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Q47WET342Fbr9IwsEAiTNxTd0ZTaazTsVYnntXfALsgzyuuaHZxDsKsczJoqBbw
+\unrestrict ee4akvTWvSYASOqfb6fs05S0Be9hVWO9qhpBIYy0I1cmiNBoYgvDCkL4lIwsXD9
 
