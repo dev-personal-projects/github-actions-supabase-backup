@@ -142,8 +142,6 @@ jobs:
       - name: Backup schemas and tables
         if: env.BACKUP_ENABLED == 'true'
         id: backup-schemas
-        env:
-          BACKUP_MAX_PARALLEL: 4  # Number of parallel table backups per schema
         run: |
           START_TIME=$(date +%s)
           source .github/scripts/backup.sh
@@ -159,7 +157,7 @@ jobs:
           SCHEMA_COUNT=0
           SCHEMA_PIDS=()
           MAX_SCHEMA_PARALLEL=2  # Run 2 schemas in parallel
-          
+
           for schema in $SCHEMAS; do
             [ -z "$schema" ] && continue
             
@@ -186,12 +184,12 @@ jobs:
             SCHEMA_PIDS+=($!)
             ((SCHEMA_COUNT++))
           done
-          
+
           # Wait for all schema backups to complete
           for pid in "${SCHEMA_PIDS[@]}"; do
             wait "$pid" || echo "Warning: Schema backup job failed" >&2
           done
-          
+
           echo "Completed backup for $SCHEMA_COUNT schema(s)"
 
           END_TIME=$(date +%s)
