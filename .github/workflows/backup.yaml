@@ -5,7 +5,7 @@ on:
     branches: [main, dev]
   workflow_dispatch: # Can be triggered manually
   schedule:
-    - cron: "27 11 * * *" # Testing: runs at 11:17 UTC (5 minutes from now). Change to "16 8 * * *" for daily at 08:16 UTC
+    - cron: "34 11 * * *" # Testing: runs at 11:34 UTC. Note: GitHub Actions scheduled workflows can have delays of 1-15 minutes. Change to "16 8 * * *" for daily at 08:16 UTC
 
 env:
   BACKUP_ENABLED: true
