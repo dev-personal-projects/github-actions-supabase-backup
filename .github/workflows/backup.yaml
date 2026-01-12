@@ -5,7 +5,7 @@ on:
     branches: [main, dev]
   workflow_dispatch: # Can be triggered manually
   schedule:
-    - cron: "07 11 * * *" # Testing: runs at 11:06 UTC (5 minutes from now). Change to "16 8 * * *" for daily at 08:16 UTC
+    - cron: "20 11 * * *" # Testing: runs at 11:17 UTC (5 minutes from now). Change to "16 8 * * *" for daily at 08:16 UTC
 
 env:
   BACKUP_ENABLED: true
@@ -19,14 +19,17 @@ jobs:
       contents: write
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-      BACKUP_ENABLED: ${{ vars.BACKUP_ENABLED }}
+      BACKUP_ENABLED: ${{ vars.BACKUP_ENABLED || 'true' }}
     steps:
       - name: Check if backups are enabled
         run: |
+          echo "BACKUP_ENABLED value: '$BACKUP_ENABLED'"
+          echo "BACKUP_ENABLED type: $(echo "$BACKUP_ENABLED" | od -c | head -1)"
           if [ "$BACKUP_ENABLED" != "true" ]; then
             echo "Backups are disabled. Exiting workflow."
             exit 0
           fi
+          echo "Backups are enabled. Proceeding with backup..."
 
       - name: Checkout repository
         if: env.BACKUP_ENABLED == 'true'
