@@ -12,6 +12,7 @@ env:
 jobs:
   run_db_backup:
     runs-on: ubuntu-latest
+    timeout-minutes: 30 # Fail if backup takes longer than 30 minutes
     permissions:
       contents: write
     env:
