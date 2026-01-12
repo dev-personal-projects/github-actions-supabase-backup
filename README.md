@@ -77,8 +77,10 @@ Go to your repository settings and navigate to **Actions > Secrets and variables
 
 The GitHub Actions workflow can be triggered from **any repository** that shares the database using **any of these methods**:
 
-- ✅ **Scheduled backups** (daily/weekly) - from one designated repo only
-  - Configure in any repo, but recommended to set in only one to avoid duplicates
+- ✅ **Scheduled backups** (daily/weekly) - runs on both dev and main branches
+  - Uses `scheduled-backup-trigger.yaml` to trigger backups on both branches
+  - Configured to run daily at 08:16 UTC (configurable in the trigger workflow)
+  - Note: GitHub Actions scheduled workflows only run on the default branch by default, so we use a trigger workflow to run on both branches
   
 - ✅ **Manual dispatch** (on-demand) - from any repo
   - Trigger from GitHub Actions UI in any repository with the workflow
