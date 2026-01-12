@@ -1,0 +1,63 @@
+name: Scheduled Backup Trigger
+
+# This workflow runs on a schedule and triggers the backup workflow on both dev and main branches.
+#
+# IMPORTANT: GitHub Actions scheduled workflows only run on the default branch by default.
+# This is a workaround to ensure scheduled backups run on both dev and main branches.
+#
+# How it works:
+# 1. This workflow runs on a schedule (daily at 08:16 UTC)
+# 2. It triggers the backup.yaml workflow on both 'main' and 'dev' branches
+# 3. Each branch gets its own backup run, committing to its respective branch
+#
+# Note: The backup.yaml workflow must have 'workflow_dispatch' enabled to be triggered this way.
+
+on:
+  schedule:
+    - cron: "35 8 * * *" # Testing: runs at 08:32 UTC (5 minutes from now). Change back to "16 8 * * *" for daily at 08:16 UTC
+
+jobs:
+  trigger-backups:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write # Required to trigger other workflows
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Trigger backup on main branch
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.WORKFLOW_TRIGGER_TOKEN }}
+          script: |
+            try {
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'backup.yaml',
+                ref: 'main'
+              });
+              console.log('✅ Triggered backup workflow on main branch');
+            } catch (error) {
+              console.error('❌ Failed to trigger backup on main:', error.message);
+              throw error;
+            }
+
+      - name: Trigger backup on dev branch
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.WORKFLOW_TRIGGER_TOKEN }}
+          script: |
+            try {
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'backup.yaml',
+                ref: 'dev'
+              });
+              console.log('✅ Triggered backup workflow on dev branch');
+            } catch (error) {
+              console.error('❌ Failed to trigger backup on dev:', error.message);
+              throw error;
+            }

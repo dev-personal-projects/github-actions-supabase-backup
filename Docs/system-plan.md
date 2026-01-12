@@ -105,8 +105,10 @@ db-backup-actions/
 ├── backups/
 │   ├── latest/                      # Latest backups container
 │   │   └── latest_2024-01-15T14-30-45Z/          # Current timestamped latest
+e│   │       ├── database_full_2024-01-15T14-30-45Z.dump  # Full database dump
 │   │       ├── roles.sql               # Database roles
 │   │       ├── public/                 # Public schema
+│   │       │   ├── public_schema_2024-01-15T14-30-45Z.dump  # Schema-level dump
 │   │       │   └── tables/             # Individual table backups
 │   │       │       ├── users/
 │   │       │       │   ├── schema.sql
@@ -115,16 +117,21 @@ db-backup-actions/
 │   │       │           ├── schema.sql
 │   │       │           └── data.sql
 │   │       └── {custom-schema}/        # Custom schemas
+│   │           ├── {schema}_schema_2024-01-15T14-30-45Z.dump  # Schema-level dump
 │   │           └── tables/
 │   │               └── {table-name}/
 │   │                   ├── schema.sql
 │   │                   └── data.sql
 │   └── archive/                     # Historical backups (previous latest moved here)
 │       ├── 2024-01-15T14-30-45Z--repo1--push--abc1234/  # Previous latest
+│       │   ├── database_full_2024-01-15T14-30-45Z.dump  # Full database dump
 │       │   ├── roles.sql
 │       │   ├── public/
+│       │   │   ├── public_schema_2024-01-15T14-30-45Z.dump
 │       │   │   └── tables/
 │       │   └── {custom-schema}/
+│       │       ├── {schema}_schema_2024-01-15T14-30-45Z.dump
+│       │       └── tables/
 │       └── 2024-01-15T12-30-00Z--repo2--pr--def5678/
 ├── Docs/
 │   └── system-plan.md

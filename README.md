@@ -9,7 +9,7 @@ This repository provides a seamless way to automate backups of **any Supabase da
 - **Multi-Repo Support:** Multiple repositories can trigger backups of a shared Supabase database
 - **Flexible Triggers:** Backups can be triggered by commits, PRs, scheduled events, or manual dispatch from any repository
 - **Concurrency Control:** Prevents duplicate backups when multiple repos trigger simultaneously
-- **Automatic Daily Backups:** Scheduled backups run every day at midnight (configure in one repo only)
+- **Automatic Daily Backups:** Scheduled backups run daily at a configurable time in UTC (configure in one repo only)
 - **Automatic Schema Detection:** Works with any Supabase database - automatically detects all schemas and tables
 - **Per-Table Backups:** Each table is backed up individually for selective restoration
 - **Full Database Backup:** Backs up ALL schemas including Supabase system schemas (auth, storage, realtime, etc.)
@@ -77,8 +77,10 @@ Go to your repository settings and navigate to **Actions > Secrets and variables
 
 The GitHub Actions workflow can be triggered from **any repository** that shares the database using **any of these methods**:
 
-- ✅ **Scheduled backups** (daily/weekly) - from one designated repo only
-  - Configure in any repo, but recommended to set in only one to avoid duplicates
+- ✅ **Scheduled backups** (daily/weekly) - runs on both dev and main branches
+  - Uses `scheduled-backup-trigger.yaml` to trigger backups on both branches
+  - Configured to run daily at 08:16 UTC (configurable in the trigger workflow)
+  - Note: GitHub Actions scheduled workflows only run on the default branch by default, so we use a trigger workflow to run on both branches
   
 - ✅ **Manual dispatch** (on-demand) - from any repo
   - Trigger from GitHub Actions UI in any repository with the workflow
@@ -101,8 +103,10 @@ The workflow performs the following steps:
 2. **Connects to your Supabase database** using the provided `SUPABASE_DB_URL` connection string.
 3. **Automatically detects all schemas** (public + any custom schemas, excluding Supabase system schemas).
 4. **Automatically detects all tables** within each detected schema.
-5. **Creates per-table backup files**:
+5. **Creates backup files**:
+   - `database_full_{timestamp}.dump`: Complete database dump in PostgreSQL custom format (all schemas, tables, data).
    - `roles.sql`: Contains all database roles and permissions.
+   - `{schema}/{schema}_schema_{timestamp}.dump`: Schema-level dump files (one per schema).
    - `{schema}/tables/{table-name}/schema.sql`: Table structure for each table.
    - `{schema}/tables/{table-name}/data.sql`: Table data for each table.
 6. **Stores backups** in this repository:
@@ -120,8 +124,10 @@ Backups are stored **in this repository** in the `backups/` directory. Each tabl
 backups/
 ├── latest/                      # Latest backups container
 │   └── latest_2026-01-11T20-07-50Z/           # Current timestamped latest
+│       ├── database_full_2026-01-11T20-07-50Z.dump  # Full database dump (all schemas)
 │       ├── roles.sql               # All database roles
 │       ├── public/                 # Public schema
+│       │   ├── public_schema_2026-01-11T20-07-50Z.dump  # Schema-level dump
 │       │   └── tables/             # Individual table backups
 │       │       ├── users/
 │       │       │   ├── schema.sql  # Table structure
@@ -133,14 +139,17 @@ backups/
 │       │           ├── schema.sql
 │       │           └── data.sql
 │       └── {custom-schema}/         # Custom schemas
+│           ├── {schema}_schema_2026-01-11T20-07-50Z.dump  # Schema-level dump
 │           └── tables/
 │               └── {table-name}/
 │                   ├── schema.sql
 │                   └── data.sql
 └── archive/                     # Historical backups (previous latest moved here)
     ├── 2026-01-11T20-00-43Z--org-repo1--push--abc1234/  # Previous latest
+    │   ├── database_full_2026-01-11T20-00-43Z.dump  # Full database dump
     │   ├── roles.sql
     │   ├── public/
+    │   │   ├── public_schema_2026-01-11T20-00-43Z.dump
     │   │   └── tables/
     │   │       ├── users/
     │   │       ├── orders/
@@ -185,16 +194,38 @@ This naming convention provides:
 
 To restore your database from a backup:
 
+### Option 1: Full Database Restoration (Fastest)
+
+Restore the entire database from the full database dump:
+
+```bash
+# Find the latest backup
+LATEST_BACKUP=$(find backups/latest -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
+
+# Restore full database from dump file
+pg_restore \
+  --db-url "<SUPABASE_DB_URL>" \
+  --clean \
+  --if-exists \
+  --verbose \
+  "$LATEST_BACKUP/database_full_*.dump"
+
+# Restore roles separately
+supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$LATEST_BACKUP/roles.sql"
+```
+
+### Option 2: Selective Restoration (Per-Table)
+
+Restore individual tables or schemas:
+
 1. Install the [Supabase CLI](https://supabase.com/docs/guides/cli).
 2. Navigate to this repository and locate your backup files:
    - **Latest backup**: `backups/latest/latest_{timestamp}/` or use symlink `backups/latest/latest/`
    - **Historical backup**: `backups/archive/{timestamp}--{repo}--{event}--{sha}/`
 3. Run the following commands in order:
 
-#### Full Database Restoration
-
 ```bash
-# Find the most recent latest backup (use symlink or find latest_* folder)
+# Find the most recent latest backup
 LATEST_BACKUP=$(find backups/latest -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
 [ -z "$LATEST_BACKUP" ] && LATEST_BACKUP="backups/latest/latest"  # Fallback to symlink
 
@@ -231,7 +262,29 @@ supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$LATEST_BACKUP/public/table
 supabase db execute --db-url "<SUPABASE_DB_URL>" -f "$LATEST_BACKUP/public/tables/users/data.sql"
 ```
 
-This allows you to restore the entire database or selectively restore individual tables as needed.
+### Option 3: Schema-Level Restoration
+
+Restore an entire schema from a schema-level dump:
+
+```bash
+LATEST_BACKUP=$(find backups/latest -maxdepth 1 -type d -name "latest_*" | sort -r | head -1)
+
+# Restore a specific schema (e.g., public schema)
+pg_restore \
+  --db-url "<SUPABASE_DB_URL>" \
+  --schema=public \
+  --clean \
+  --if-exists \
+  --verbose \
+  "$LATEST_BACKUP/public/public_schema_*.dump"
+```
+
+**Three-Tier Backup Strategy:**
+- **Tier 1**: Full database dump (`database_full_{timestamp}.dump`) - Fastest complete restoration
+- **Tier 2**: Schema-level dumps (`{schema}_schema_{timestamp}.dump`) - Fast schema restoration
+- **Tier 3**: Per-table files (`schema.sql` + `data.sql`) - Granular table restoration
+
+This allows you to restore the entire database, specific schemas, or individual tables as needed.
 
 ### 4. **Workflow Toggle**
 
