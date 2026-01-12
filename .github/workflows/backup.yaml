@@ -3,7 +3,9 @@ name: supabase-backup
 on:
   push:
     branches: [main, dev]
-  workflow_dispatch: # Can be triggered manually or by scheduled-backup-trigger.yaml
+  workflow_dispatch: # Can be triggered manually
+  schedule:
+    - cron: "16 0 * * *" # Testing: runs at 10:51 UTC. Change to "16 8 * * *" for daily at 08:16 UTC
 
 env:
   BACKUP_ENABLED: true
