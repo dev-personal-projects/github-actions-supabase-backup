@@ -84,6 +84,7 @@ verify_pg_version() {
 **Backup Structure**:
 ```
 backups/latest/
+├── database_full_20241215_143045.dump        # Full database dump (all schemas)
 ├── roles.sql
 ├── public/
 │   ├── public_schema_20241215_143045.dump    # Full schema dump (all tables)

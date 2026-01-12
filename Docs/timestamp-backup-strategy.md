@@ -43,25 +43,31 @@ This document defines the strategy for implementing timestamped backups to uniqu
 backups/
 ├── latest/                                    # Latest backups container
 │   └── latest_2024-01-15T14-30-45Z/          # Current timestamped latest
+│       ├── database_full_2024-01-15T14-30-45Z.dump  # Full database dump
 │       ├── roles.sql
 │       ├── public/
+│       │   ├── public_schema_2024-01-15T14-30-45Z.dump  # Schema-level dump
 │       │   └── tables/
 │       │       ├── users/
 │       │       │   ├── schema.sql
 │       │       │   └── data.sql
 │       │       └── orders/
 │       └── auth/
+│           ├── auth_schema_2024-01-15T14-30-45Z.dump  # Schema-level dump
 │           └── tables/
 └── archive/                                   # Historical backups (previous latest moved here)
     ├── 2024-01-15T14-30-45Z--myorg-repo--push--abc1234/  # Previous latest
+    │   ├── database_full_2024-01-15T14-30-45Z.dump  # Full database dump
     │   ├── roles.sql
     │   ├── public/
+    │   │   ├── public_schema_2024-01-15T14-30-45Z.dump
     │   │   └── tables/
     │   │       ├── users/
     │   │       │   ├── schema.sql
     │   │       │   └── data.sql
     │   │       └── orders/
     │   └── auth/
+    │       ├── auth_schema_2024-01-15T14-30-45Z.dump
     │       └── tables/
     └── 2024-01-15T18-20-10Z--myorg-repo--schedule--def5678/
         ├── roles.sql

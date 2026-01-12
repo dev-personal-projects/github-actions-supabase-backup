@@ -207,6 +207,25 @@ jobs:
           LATEST_PATH="${{ steps.latest-setup.outputs.latest_path }}"
           backup_roles "$SUPABASE_DB_URL" "$LATEST_PATH/roles.sql"
 
+      - name: Backup full database
+        if: env.BACKUP_ENABLED == 'true'
+        run: |
+          source .github/scripts/common.sh
+          source .github/scripts/backup.sh
+          BACKUP_TIMESTAMP="${{ steps.timestamp.outputs.timestamp }}"
+          LATEST_PATH="${{ steps.latest-setup.outputs.latest_path }}"
+
+          # Initialize connection semaphore for full database backup
+          export GLOBAL_SEMAPHORE_DIR="/tmp/backup_semaphore_$$"
+          export GLOBAL_MAX_CONNECTIONS="${GLOBAL_MAX_CONNECTIONS:-10}"
+          init_global_semaphore
+          trap "cleanup_global_semaphore" EXIT
+
+          backup_full_database "$SUPABASE_DB_URL" "$BACKUP_TIMESTAMP" "$LATEST_PATH"
+
+          cleanup_global_semaphore
+          trap - EXIT
+
       - name: Backup schemas and tables
         if: env.BACKUP_ENABLED == 'true'
         id: backup-schemas

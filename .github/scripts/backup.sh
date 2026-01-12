@@ -216,6 +216,97 @@ backup_roles() {
   echo "Successfully backed up roles to $OUTPUT_FILE"
 }
 
+# Backup full database as .dump file (custom format)
+# Creates a complete database dump including all schemas, tables, indexes, constraints, etc.
+# Parameters:
+#   $1: Database URL (connection string)
+#   $2: Timestamp (ISO 8601 format, optional - will generate if not provided)
+#   $3: Output directory (where to save the dump file)
+# Returns: 0 on success, 1 on failure
+backup_full_database() {
+  local DB_URL="${1:-}"
+  local TIMESTAMP="${2:-}"
+  local OUTPUT_DIR="${3:-}"
+
+  [ -z "$DB_URL" ] || [ -z "$OUTPUT_DIR" ] && {
+    echo "Error: Database URL and output directory are required" >&2
+    return 1
+  }
+
+  [ -z "$TIMESTAMP" ] && TIMESTAMP=$(generate_backup_timestamp)
+
+  local PG_DUMP=$(get_pg_binary "pg_dump")
+  local dump_file="${OUTPUT_DIR}/database_full_${TIMESTAMP}.dump"
+  mkdir -p "$OUTPUT_DIR"
+
+  echo "Creating full database dump..."
+
+  # Force IPv4 connection
+  DB_URL=$(force_ipv4_connection "$DB_URL" 2>/dev/null)
+
+  # Acquire connection slot for full database dump
+  local SLOT_FILE=""
+  SLOT_FILE=$(acquire_connection_slot) || SLOT_FILE=""
+  if [ -z "$SLOT_FILE" ]; then
+    echo "Warning: Failed to acquire connection slot for full database dump, continuing without slot..." >&2
+  else
+    trap "release_connection_slot '$SLOT_FILE'" EXIT
+  fi
+
+  local ERROR_FILE=$(mktemp)
+  local retry_count=0
+  local max_retries=3
+  local retry_delay=2
+
+  while [ $retry_count -lt $max_retries ]; do
+    if $PG_DUMP "$DB_URL" \
+      --format=custom \
+      --file="$dump_file" \
+      --no-owner \
+      --no-privileges \
+      --blobs \
+      --no-sync \
+      --verbose 2> "$ERROR_FILE"; then
+      break  # Success
+    fi
+
+    # Check if it's a connection limit error
+    if [ -s "$ERROR_FILE" ] && grep -qiE "(Max client connections|MaxClientsInSessionMode)" "$ERROR_FILE"; then
+      ((retry_count++))
+      if [ $retry_count -lt $max_retries ]; then
+        echo "Connection limit reached, retrying full database dump ($retry_count/$max_retries) after ${retry_delay}s..." >&2
+        sleep $retry_delay
+        retry_delay=$((retry_delay * 2))  # Exponential backoff
+        continue
+      fi
+    fi
+
+    # Not a retryable error or max retries reached
+    echo "Error: Failed to create full database dump" >&2
+    if [ -s "$ERROR_FILE" ]; then
+      echo "pg_dump error:" >&2
+      cat "$ERROR_FILE" | sed 's/postgresql:\/\/[^@]*@/postgresql:\/\/***@/g' >&2
+    fi
+    rm -f "$ERROR_FILE" "$dump_file" 2>/dev/null
+    [ -n "$SLOT_FILE" ] && release_connection_slot "$SLOT_FILE"
+    trap - EXIT
+    return 1
+  done
+
+  rm -f "$ERROR_FILE"
+  [ -n "$SLOT_FILE" ] && release_connection_slot "$SLOT_FILE"
+  trap - EXIT
+
+  if [ -f "$dump_file" ]; then
+    local file_size=$(stat -c%s "$dump_file" 2>/dev/null || echo "0")
+    echo "Full database dump completed: ${dump_file} ($(numfmt --to=iec-i --suffix=B "$file_size" 2>/dev/null || echo "${file_size}B"))"
+    return 0
+  else
+    echo "Error: Full database dump file not created" >&2
+    return 1
+  fi
+}
+
 # Backup a single table (schema and data) - Optimized version
 # Uses optimized pg_dump flags for better performance
 # Uses global connection semaphore to limit total concurrent connections
@@ -543,6 +634,15 @@ print_backup_summary() {
     ROLES_SIZE=$(stat -c%s "$BACKUP_LOCATION/roles.sql" 2>/dev/null || echo "0")
     TOTAL_BACKUP_SIZE=$((TOTAL_BACKUP_SIZE + ROLES_SIZE))
   fi
+
+  # Count full database dump file size
+  local FULL_DUMP_SIZE=0
+  local FULL_DUMP_FILE=""
+  FULL_DUMP_FILE=$(find "$BACKUP_LOCATION" -maxdepth 1 -name "database_full_*.dump" -type f 2>/dev/null | head -1)
+  if [ -n "$FULL_DUMP_FILE" ] && [ -f "$FULL_DUMP_FILE" ]; then
+    FULL_DUMP_SIZE=$(stat -c%s "$FULL_DUMP_FILE" 2>/dev/null || echo "0")
+    TOTAL_BACKUP_SIZE=$((TOTAL_BACKUP_SIZE + FULL_DUMP_SIZE))
+  fi
   
   # Process each schema directory
   local SCHEMA_DETAILS=""
@@ -630,12 +730,21 @@ EOF
 EOF
   fi
 
+  # Format full database dump info
+  local FULL_DUMP_INFO=""
+  if [ $FULL_DUMP_SIZE -gt 0 ]; then
+    FULL_DUMP_INFO="$(numfmt --to=iec-i --suffix=B "$FULL_DUMP_SIZE" 2>/dev/null || echo "0B") ($(basename "$FULL_DUMP_FILE"))"
+  else
+    FULL_DUMP_INFO="Not available"
+  fi
+
   cat <<EOF
 
 📊 Backup Statistics:
    Schemas Backed Up: ${SCHEMA_COUNT}
    Tables Backed Up:  ${TOTAL_TABLE_COUNT}
    Roles File Size:   $(numfmt --to=iec-i --suffix=B "$ROLES_SIZE" 2>/dev/null || echo "0B")
+   Full Database Dump: ${FULL_DUMP_INFO}
    Total Backup Size: $(numfmt --to=iec-i --suffix=B "$TOTAL_BACKUP_SIZE" 2>/dev/null || echo "0B")
 
 📁 Schema Details:${SCHEMA_DETAILS}
@@ -674,11 +783,12 @@ EOF
 if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
   case "${1:-}" in
     roles)  backup_roles "${2:-}" "${3:-}" ;;
+    full)   backup_full_database "${2:-}" "${3:-}" "${4:-}" ;;
     table)  backup_table "${2:-}" "${3:-}" "${4:-}" "${5:-}" ;;
     schema) backup_schema "${2:-}" "${3:-}" "${4:-}" ;;
     summary) print_backup_summary "${2:-}" "${3:-}" "${4:-}" "${5:-}" ;;
     *)
-      echo "Usage: $0 {roles|table|schema|summary} [args...]" >&2
+      echo "Usage: $0 {roles|full|table|schema|summary} [args...]" >&2
       exit 1
       ;;
   esac
