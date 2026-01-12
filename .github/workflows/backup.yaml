@@ -5,7 +5,7 @@ on:
     branches: [main, dev]
   workflow_dispatch: # Can be triggered manually
   schedule:
-    - cron: "16 0 * * *" # Testing: runs at 10:51 UTC. Change to "16 8 * * *" for daily at 08:16 UTC
+    - cron: "07 11 * * *" # Testing: runs at 11:06 UTC (5 minutes from now). Change to "16 8 * * *" for daily at 08:16 UTC
 
 env:
   BACKUP_ENABLED: true
