@@ -14,7 +14,7 @@ name: Scheduled Backup Trigger
 
 on:
   schedule:
-    - cron: "32 8 * * *" # Testing: runs at 08:32 UTC (5 minutes from now). Change back to "16 8 * * *" for daily at 08:16 UTC
+    - cron: "35 8 * * *" # Testing: runs at 08:32 UTC (5 minutes from now). Change back to "16 8 * * *" for daily at 08:16 UTC
 
 jobs:
   trigger-backups:
@@ -29,7 +29,7 @@ jobs:
       - name: Trigger backup on main branch
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.WORKFLOW_TRIGGER_TOKEN }}
           script: |
             try {
               await github.rest.actions.createWorkflowDispatch({
@@ -47,7 +47,7 @@ jobs:
       - name: Trigger backup on dev branch
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.WORKFLOW_TRIGGER_TOKEN }}
           script: |
             try {
               await github.rest.actions.createWorkflowDispatch({
