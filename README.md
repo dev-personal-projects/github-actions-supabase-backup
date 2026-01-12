@@ -9,7 +9,7 @@ This repository provides a seamless way to automate backups of **any Supabase da
 - **Multi-Repo Support:** Multiple repositories can trigger backups of a shared Supabase database
 - **Flexible Triggers:** Backups can be triggered by commits, PRs, scheduled events, or manual dispatch from any repository
 - **Concurrency Control:** Prevents duplicate backups when multiple repos trigger simultaneously
-- **Automatic Daily Backups:** Scheduled backups run every day at midnight (configure in one repo only)
+- **Automatic Daily Backups:** Scheduled backups run daily at a configurable time in UTC (configure in one repo only)
 - **Automatic Schema Detection:** Works with any Supabase database - automatically detects all schemas and tables
 - **Per-Table Backups:** Each table is backed up individually for selective restoration
 - **Full Database Backup:** Backs up ALL schemas including Supabase system schemas (auth, storage, realtime, etc.)
