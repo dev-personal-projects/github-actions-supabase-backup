@@ -1,0 +1,227 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict KvqJnmhlRswbec1jvhdB72F3COyyqAXVZ79OWzvohf8YeVMKSPBoCw5dxpNFtfw
+
+-- Dumped from database version 17.6
+-- Dumped by pg_dump version 17.10 (Ubuntu 17.10-1.pgdg24.04+1)
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_table_access_method = heap;
+
+--
+-- Name: invoices; Type: TABLE; Schema: lh_tims_emulator; Owner: -
+--
+
+CREATE TABLE lh_tims_emulator.invoices (
+    id bigint NOT NULL,
+    request_id text NOT NULL,
+    mtn text NOT NULL,
+    invoice_number text NOT NULL,
+    doc_no integer NOT NULL,
+    transaction_type smallint NOT NULL,
+    invoice_type smallint NOT NULL,
+    total_amount numeric(19,4) NOT NULL,
+    total_items integer NOT NULL,
+    issued_at timestamp with time zone NOT NULL,
+    request_payload jsonb NOT NULL,
+    response_payload jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT ck_invoices__doc_no_positive CHECK ((doc_no >= 1)),
+    CONSTRAINT ck_invoices__invoice_number_format CHECK ((invoice_number ~ '^[0-9]{19}$'::text)),
+    CONSTRAINT ck_invoices__invoice_number_not_blank CHECK ((btrim(invoice_number) <> ''::text)),
+    CONSTRAINT ck_invoices__invoice_type CHECK ((invoice_type = ANY (ARRAY[0, 1]))),
+    CONSTRAINT ck_invoices__mtn_format CHECK ((mtn ~ '^[0-9]{19}$'::text)),
+    CONSTRAINT ck_invoices__mtn_not_blank CHECK ((btrim(mtn) <> ''::text)),
+    CONSTRAINT ck_invoices__request_id_max_len CHECK ((char_length(request_id) <= 32)),
+    CONSTRAINT ck_invoices__request_id_not_blank CHECK ((btrim(request_id) <> ''::text)),
+    CONSTRAINT ck_invoices__total_amount_non_negative CHECK ((total_amount >= (0)::numeric)),
+    CONSTRAINT ck_invoices__total_items_non_negative CHECK ((total_items >= 0)),
+    CONSTRAINT ck_invoices__transaction_type CHECK ((transaction_type = ANY (ARRAY[0, 1, 2])))
+);
+
+
+--
+-- Name: TABLE invoices; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON TABLE lh_tims_emulator.invoices IS 'Stores issued invoices for retrieval and reporting';
+
+
+--
+-- Name: COLUMN invoices.request_id; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON COLUMN lh_tims_emulator.invoices.request_id IS 'Idempotency key from RequestId header (max 32 chars)';
+
+
+--
+-- Name: COLUMN invoices.mtn; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON COLUMN lh_tims_emulator.invoices.mtn IS 'Machine Transaction Number (19 digits)';
+
+
+--
+-- Name: COLUMN invoices.invoice_number; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON COLUMN lh_tims_emulator.invoices.invoice_number IS 'Fiscal invoice number (19 digits)';
+
+
+--
+-- Name: COLUMN invoices.doc_no; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON COLUMN lh_tims_emulator.invoices.doc_no IS 'Monotonic document number used for report ranges (DailySalesInfo First/LastDocInRange)';
+
+
+--
+-- Name: COLUMN invoices.transaction_type; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON COLUMN lh_tims_emulator.invoices.transaction_type IS '0=Sale, 1=Credit, 2=Debit';
+
+
+--
+-- Name: COLUMN invoices.invoice_type; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON COLUMN lh_tims_emulator.invoices.invoice_type IS '0=Normal, 1=Copy';
+
+
+--
+-- Name: COLUMN invoices.total_amount; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON COLUMN lh_tims_emulator.invoices.total_amount IS 'Invoice total amount (numeric(19,4)).';
+
+
+--
+-- Name: COLUMN invoices.total_items; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON COLUMN lh_tims_emulator.invoices.total_items IS 'Number of line items on the invoice.';
+
+
+--
+-- Name: COLUMN invoices.issued_at; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON COLUMN lh_tims_emulator.invoices.issued_at IS 'Timestamp when the invoice was issued by the emulator.';
+
+
+--
+-- Name: COLUMN invoices.request_payload; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON COLUMN lh_tims_emulator.invoices.request_payload IS 'Raw JSON request payload (stored for exact replays and auditing).';
+
+
+--
+-- Name: COLUMN invoices.response_payload; Type: COMMENT; Schema: lh_tims_emulator; Owner: -
+--
+
+COMMENT ON COLUMN lh_tims_emulator.invoices.response_payload IS 'Raw JSON response payload (stored for exact retrieval and auditing).';
+
+
+--
+-- Name: invoices_id_seq; Type: SEQUENCE; Schema: lh_tims_emulator; Owner: -
+--
+
+ALTER TABLE lh_tims_emulator.invoices ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME lh_tims_emulator.invoices_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: invoices invoices_pkey; Type: CONSTRAINT; Schema: lh_tims_emulator; Owner: -
+--
+
+ALTER TABLE ONLY lh_tims_emulator.invoices
+    ADD CONSTRAINT invoices_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: invoices uq_invoices__doc_no; Type: CONSTRAINT; Schema: lh_tims_emulator; Owner: -
+--
+
+ALTER TABLE ONLY lh_tims_emulator.invoices
+    ADD CONSTRAINT uq_invoices__doc_no UNIQUE (doc_no);
+
+
+--
+-- Name: invoices uq_invoices__mtn; Type: CONSTRAINT; Schema: lh_tims_emulator; Owner: -
+--
+
+ALTER TABLE ONLY lh_tims_emulator.invoices
+    ADD CONSTRAINT uq_invoices__mtn UNIQUE (mtn);
+
+
+--
+-- Name: invoices uq_invoices__request_id; Type: CONSTRAINT; Schema: lh_tims_emulator; Owner: -
+--
+
+ALTER TABLE ONLY lh_tims_emulator.invoices
+    ADD CONSTRAINT uq_invoices__request_id UNIQUE (request_id);
+
+
+--
+-- Name: ix_invoices__doc_no; Type: INDEX; Schema: lh_tims_emulator; Owner: -
+--
+
+CREATE INDEX ix_invoices__doc_no ON lh_tims_emulator.invoices USING btree (doc_no);
+
+
+--
+-- Name: ix_invoices__invoice_number; Type: INDEX; Schema: lh_tims_emulator; Owner: -
+--
+
+CREATE INDEX ix_invoices__invoice_number ON lh_tims_emulator.invoices USING btree (invoice_number);
+
+
+--
+-- Name: ix_invoices__issued_at; Type: INDEX; Schema: lh_tims_emulator; Owner: -
+--
+
+CREATE INDEX ix_invoices__issued_at ON lh_tims_emulator.invoices USING btree (issued_at);
+
+
+--
+-- Name: ix_invoices__mtn; Type: INDEX; Schema: lh_tims_emulator; Owner: -
+--
+
+CREATE INDEX ix_invoices__mtn ON lh_tims_emulator.invoices USING btree (mtn);
+
+
+--
+-- Name: invoices trg_update_invoices_updated_at; Type: TRIGGER; Schema: lh_tims_emulator; Owner: -
+--
+
+CREATE TRIGGER trg_update_invoices_updated_at BEFORE UPDATE ON lh_tims_emulator.invoices FOR EACH ROW EXECUTE FUNCTION lh_tims_emulator.update_updated_at_column();
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict KvqJnmhlRswbec1jvhdB72F3COyyqAXVZ79OWzvohf8YeVMKSPBoCw5dxpNFtfw
+
